@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+	<ApplicationIcon>..\resources\sound-wave-color.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="..\resources\splash_name.png" Link="Resources\splash_name.png" />
+    <Resource Include="..\resources\splash_blank.png" Link="Resources\splash_blank.png" />
+  </ItemGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <OutputPath>..\..\out\build\x64-debug\</OutputPath>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <OutputPath>..\..\out\build\x64-release\</OutputPath>
+  </PropertyGroup>
+
+  <!-- Pre-build: compile the CMake libraries into the same directory as this exe -->
+  <Target Name="BuildNativeLibraries" BeforeTargets="BeforeBuild">
+    <PropertyGroup>
+      <RmdCMakeBuildDir>$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '..', '..', 'out', 'build', 'x64-$(Configuration.ToLower())'))</RmdCMakeBuildDir>
+    </PropertyGroup>
+    <Error Condition="!Exists('$(RmdCMakeBuildDir)/build.ninja')" Text="CMake build directory '$(RmdCMakeBuildDir)' is not configured. Run: cmake --preset x64-$(Configuration.ToLower())" />
+    <!-- cl.exe needs the VS developer environment (INCLUDE/LIB) to find windows.h; load it via vcvars64.bat -->
+    <Exec Command="&quot;$(MSBuildProgramFiles32)\Microsoft Visual Studio\Installer\vswhere.exe&quot; -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath" ConsoleToMSBuild="true" StandardOutputImportance="low">
+      <Output TaskParameter="ConsoleOutput" PropertyName="RmdVsInstallPath" />
+    </Exec>
+    <Error Condition="'$(RmdVsInstallPath)' == ''" Text="Visual Studio with the C++ toolset was not found (vswhere)." />
+    <Exec Command="call &quot;$(RmdVsInstallPath)\VC\Auxiliary\Build\vcvars64.bat&quot; &gt;nul &amp;&amp; cmake --build &quot;$(RmdCMakeBuildDir)&quot; --target rms_common rms_network rms_controlsurface rms_soundengine" />
+  </Target>
+
+  <!-- Output goes to out\build; remove the stray bin directory MSBuild creates -->
+  <Target Name="RemoveStrayBin" AfterTargets="Restore;CoreCompile;Build">
+    <RemoveDir Directories="$(MSBuildProjectDirectory)\bin" />
+	<RemoveDir Directories="$(MSBuildProjectDirectory)\out" />
+  </Target>
+
+</Project>
