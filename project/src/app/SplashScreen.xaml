@@ -10,5 +10,18 @@
         WindowStartupLocation="CenterScreen" ShowInTaskbar="False">
     <Grid>
         <Image x:Name="splashScreen" Stretch="Uniform"/>
+        <!-- Overlay layer: later children draw on top of the image -->
+        <TextBlock x:Name="splashStatus" HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                   Margin="12,0,0,10" Foreground="White" FontSize="14">
+            <TextBlock.Effect>
+                <DropShadowEffect ShadowDepth="1" BlurRadius="4" Color="Black"/>
+            </TextBlock.Effect>
+        </TextBlock>
+        <TextBlock x:Name="splashVersion" HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                   Margin="0,0,12,10" Foreground="White" FontSize="14">
+            <TextBlock.Effect>
+                <DropShadowEffect ShadowDepth="1" BlurRadius="4" Color="Black"/>
+            </TextBlock.Effect>
+        </TextBlock>
     </Grid>
 </Window>
