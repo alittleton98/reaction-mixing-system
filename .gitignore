@@ -112,6 +112,7 @@ StyleCopReport.xml
 *.pidb
 *.svclog
 *.scc
+*.slnx
 
 # Chutzpah Test files
 _Chutzpah*
@@ -419,6 +420,8 @@ FodyWeavers.xsd
 
 wwise_projects/
 _project/
+_project1/
 project/out/
 .vscode/
 desktop.ini
+*.psd

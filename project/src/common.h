@@ -5,10 +5,6 @@
 #include <string>
 #include <chrono>
 #include <thread>
+#include <unordered_map>
 
 using namespace std;
-
-const string DEFAULT_AUDIO_BUS_NAMES[] =
-{
-	""
-};
