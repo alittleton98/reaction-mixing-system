@@ -35,7 +35,7 @@ namespace ReactionMixingSystem
             splashStatus.Text = "Starting...";
             splashVersion.Text = $"v{BuildDefines.RmdVersionString}";
             splashScreen.Source = new BitmapImage(new Uri(splashScreenName));
-            Loaded += async (_, _) => await RunAsync();
+            Loaded += async (_, _) => await InitializeModules();
         }
 
         // Name image for NameDuration, then the blank image for the rest of SplashDuration; then signal completion.

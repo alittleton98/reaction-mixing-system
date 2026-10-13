@@ -1,7 +1,5 @@
 ﻿# Reaction Mixing System CMake configuration file
 #
-
-
 cmake_minimum_required (VERSION 3.26)
 set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
 include(FetchContent)
@@ -69,8 +67,6 @@ if (NOT DEFINED ENV{VST_SSL_METER})
 	message(FATAL_ERROR "Environment variable VST_SSL_METER not defined")
 endif()
 
-
-
 # Dependencies
 FetchContent_Declare( 
 	asio
@@ -105,52 +101,33 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 
-add_library(rms_soundengine SHARED
-	src/soundengine/private/ReactionSoundEngine.cpp
-	src/soundengine/public/ReactionSoundEngine.h
-)
-target_include_directories(rms_soundengine
-	PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR}/src/soundengine/public
-	PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/soundengine/private
-)
-target_compile_features(rms_soundengine PUBLIC cxx_std_20)
+# Each rms_<name> builds as a SHARED lib (dll + import lib, used by the C# app) and as a
+# STATIC lib (rms_<name>_static, linked into the server) from the same sources.
+function(rms_add_library name class)
+	set(sources
+		src/${name}/private/${class}.cpp
+		src/${name}/public/${class}.h
+	)
+	foreach(kind SHARED STATIC)
+		set(target rms_${name})
+		if ("${kind}" STREQUAL "STATIC")
+			set(target rms_${name}_static)
+		endif()
+		add_library(${target} ${kind} ${sources})
+		target_include_directories(${target}
+			PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR}/src/${name}/public
+			PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/${name}/private
+		)
+		target_compile_features(${target} PUBLIC cxx_std_20)
+		set_target_properties(${target} PROPERTIES CXX_STANDARD 20)
+	endforeach()
+	set_target_properties(rms_${name} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
+endfunction()
 
-add_library(rms_controlsurface SHARED
-	src/controlsurface/private/ReactionControlSurface.cpp
-	src/controlsurface/public/ReactionControlSurface.h
-)
-target_include_directories(rms_controlsurface
-	PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR}/src/controlsurface/public
-	PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/controlsurface/private
-)
-target_compile_features(rms_controlsurface PUBLIC cxx_std_20)
-
-add_library(rms_network SHARED
-	src/network/private/ReactionNetwork.cpp
-	src/network/public/ReactionNetwork.h
-)
-target_include_directories(rms_network
-	PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR}/src/network/public
-	PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/network/private
-)
-target_compile_features(rms_network PUBLIC cxx_std_20)
-
-add_library(rms_common SHARED
-	src/common/private/ReactionCommon.cpp
-	src/common/public/ReactionCommon.h
-)
-target_include_directories(rms_common
-	PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR}/src/common/public
-	PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/common/private
-)
-target_compile_features(rms_common PUBLIC cxx_std_20)
-
-if (CMAKE_VERSION VERSION_GREATER 3.12)
-  set_property(TARGET rms_soundengine PROPERTY CXX_STANDARD 20)
-endif()
-foreach(lib rms_soundengine rms_controlsurface rms_network rms_common)
-	set_target_properties(${lib} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
-endforeach()
+rms_add_library(soundengine ReactionSoundEngine)
+rms_add_library(controlsurface ReactionControlSurface)
+rms_add_library(network ReactionNetwork)
+rms_add_library(common ReactionCommon)
 
 # Mirror the global compile definitions into the C# project. DefineConstants can't carry values,
 # so write them as constants; file(CONFIGURE) only rewrites the file when the content changes.
@@ -205,6 +182,7 @@ if (DOTNET_EXECUTABLE)
     <UseWPF>true</UseWPF>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 	<ApplicationIcon>..\resources\sound-wave-color.ico</ApplicationIcon>
+	<Platforms>x64</Platforms>
   </PropertyGroup>
 
   <ItemGroup>
@@ -247,6 +225,13 @@ else()
 endif()
 
 add_executable(ReactionMixingServer WIN32 "src/server/ReactionAudioServer.cpp" "src/resources/reaction-mixing-desk.rc")
-target_include_directories(ReactionMixingServer PUBLIC 
+target_include_directories(ReactionMixingServer PUBLIC
  "${CMAKE_CURRENT_SOURCE_DIR}/src"
+)
+
+target_link_libraries(ReactionMixingServer PRIVATE
+	rms_soundengine_static
+	rms_controlsurface_static
+	rms_network_static
+	rms_common_static
 )
