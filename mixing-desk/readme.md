@@ -10,7 +10,7 @@ Scripting the mixing desk is considered Power User level customization and is no
 
 ### Scripting
 
-Contexts for the Mixing Desk are written in python and loaded by the mixing desk. These are intended to expand behavior of the mixing desk to be more inline with what the user may need. The scripting for Mixing Desk contexts are how all configurations are designed so there are examples included with the package.&#x20;
+Contexts for the Mixing Desk are written in python and loaded by the mixing desk. These are intended to expand behavior of the mixing desk to be more inline with what the user may need and is not required. The scripting for Mixing Desk contexts are how all configurations are designed so there are examples included with the package.&#x20;
 
 ## Signal Chain
 
@@ -33,13 +33,12 @@ The Channel Strip setup runs the audio processing setup for the Mixing Desk. Thi
 
 * ASIO 512 Channel Device
 * SSL Channel Strip Plugins
-* SSL Mastering Plugins
 
-The Channel Strip model of the Mixing Desk is designed to run like an analog studio desk. The Master channels are at the end of the Channel List so the channels available always start at `0` and go up to `512 - Number of Channels for Master Bus` .&#x20;
+The Channel Strip model of the Mixing Desk is designed to run like an analog studio desk. The Master channels are at the end of the Channel List so the channels available always start at `0` and go up to `512 - Number of Channels for Master Bus` . The master is at the end of the desk because it summs all input channels
 
 #### Busses
 
-Any number of busses can be created but they must fit within the 512 channels used by the audio device (minus the Master. It is the default and only required bus). Each Bus that's created will have it's input buffer loaded by its source channels. Busses do not load their own input buffer like regular channels do. Busses are similar to channels except the input source is any set of channels.
+Any number of busses can be created but they must fit within the 512 output channels used by the audio device (minus the Master. It is the default and only required bus). Each Bus that's created will have it's input buffer loaded by its source channels. Busses do not load their own input buffer like regular channels do. Busses are similar to channels except the input source is any set of channels.
 
 ## Control Surface
 
