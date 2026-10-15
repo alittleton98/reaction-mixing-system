@@ -6,9 +6,13 @@
 
 * [Mixing Desk](mixing-desk/readme.md)
 
-## Audio Server
+## CLI
 
-* [Audio Server](audio-server/audio-server.md)
+* [Command Line Interface](cli/command-line-interface.md)
+* [Audio Server](cli/audio-server.md)
+* [Sound Engine Analysis](cli/sound-engine-analysis.md)
+
+## Audio Server
 
 ## Audio Plugin
 
