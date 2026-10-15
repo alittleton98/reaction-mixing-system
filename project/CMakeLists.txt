@@ -22,9 +22,9 @@ if(GIT_FOUND)
         OUTPUT_STRIP_TRAILING_WHITESPACE
     )
 	execute_process(
-        COMMAND ${GIT_EXECUTABLE} log -1 --format=%h -- ${CMAKE_CURRENT_SOURCE_DIR}/src/file-formats.json
+        COMMAND ${GIT_EXECUTABLE} log -1 --format=%h -- "${CMAKE_CURRENT_SOURCE_DIR}/src/common/file-formats.json"
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-        OUTPUT_VARIABLE MD_FILEFORMAT_HASH
+        OUTPUT_VARIABLE RMD_FILEFORMAT_HASH
         OUTPUT_STRIP_TRAILING_WHITESPACE
     )
 else()

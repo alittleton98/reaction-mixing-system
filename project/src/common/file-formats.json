@@ -1,6 +1,6 @@
 {
   "name": "reaction-projectfile-fmt",
-  "version": [  ],
+  "version": [ 9650ee9 ],
   "description": "Reaction Project File Format. Loaded by the server and client for persistent storage of the last state of the project",
   "testString": "string",
   "testDouble": "double",
