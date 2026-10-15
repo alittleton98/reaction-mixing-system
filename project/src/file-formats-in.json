@@ -1,0 +1,14 @@
+{
+  "name": "reaction-projectfile-fmt",
+  "version": [ @RMD_FILEFORMAT_HASH@ ],
+  "description": "Reaction Project File Format. Loaded by the server and client for persistent storage of the last state of the project",
+  "testString": "string",
+  "testDouble": "double",
+  "testBool": "bool",
+  "testInt32": "int32",
+  "testInt64": "int64",
+  "testUInt32": "uint32",
+  "testUInt64": "uint64",
+  "testFloat": "float",
+  "testByte": "uint8"
+}
