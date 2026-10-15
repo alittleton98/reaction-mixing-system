@@ -22,9 +22,9 @@ if(GIT_FOUND)
         OUTPUT_STRIP_TRAILING_WHITESPACE
     )
 	execute_process(
-        COMMAND ${GIT_EXECUTABLE} log -1 --format=%h -- "${CMAKE_CURRENT_SOURCE_DIR}/src/common/file-formats.json"
+        COMMAND ${GIT_EXECUTABLE}  rev-list --count HEAD -- "${CMAKE_CURRENT_SOURCE_DIR}/file-formats-in.json"
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-        OUTPUT_VARIABLE RMD_FILEFORMAT_HASH
+        OUTPUT_VARIABLE RMD_FILEFORMAT_VERSION
         OUTPUT_STRIP_TRAILING_WHITESPACE
     )
 else()
@@ -40,16 +40,12 @@ add_compile_definitions(RMD_MAJOR_NUMBER=0)
 add_compile_definitions(RMD_MINOR_NUMBER=1)
 add_compile_definitions(RMD_BUILD_NUMBER=${GIT_COMMIT_COUNT})
 add_compile_definitions(RMD_VERSION_STRING="${RMD_MAJOR_NUMBER}.${RMD_MINOR_NUMBER}.${RMD_BUILD_NUMBER}")
-if (DEFINED ENV{RMSASIODEVICENAME})
-  add_compile_definitions(ASIO_DEVICE_NAME="$ENV{RMSASIODEVICENAME}")
-else()
-  message(FATAL_ERROR "Environment variable RMSASIODEVICENAME is required")
-endif()
+add_compile_definitions(ASIO_DEVICE_NAME="VB-Matrix VASIO-512")
 
 # File format hash: SHA-256 of the unsubstituted template, truncated to 32 bits so it is a valid
 # JSON number (and fits a uint32). The substituted copy is written to the build dir.
-set(RMD_FILEFORMAT_JSON "${CMAKE_CURRENT_SOURCE_DIR}/src/file-formats-in.json")
-configure_file("${RMD_FILEFORMAT_JSON}" "${CMAKE_CURRENT_SOURCE_DIR}/src/common/file-formats.json" @ONLY NEWLINE_STYLE LF)
+set(RMD_FILEFORMAT_JSON "${CMAKE_CURRENT_SOURCE_DIR}/file-formats-in.json")
+configure_file("${RMD_FILEFORMAT_JSON}" "${CMAKE_CURRENT_SOURCE_DIR}/src/file-formats.json" @ONLY NEWLINE_STYLE LF)
 
 # Mirror the global compile definitions into the C# project. DefineConstants can't carry values,
 # so write them as constants; file(CONFIGURE) only rewrites the file when the content changes.
@@ -70,8 +66,6 @@ internal static class BuildDefines
     public const string AsioDeviceName = \"${RMD_CS_ASIO_DEVICE_NAME}\";
 }
 ")
-
-
 
 message("")
 find_program(Python3 python)
@@ -144,6 +138,19 @@ FetchContent_MakeAvailable(vst3sdk)
 smtg_enable_vst3_sdk()
 
 
+find_file(VB_AUDIO_EXE
+    NAMES VBAudioMatrixCoconut_x64.exe
+    PATHS "$ENV{${_pf86}}/VB/VBAudioMatrix"
+          "C:/Program Files (x86)/VB/VBAudioMatrix"
+    NO_DEFAULT_PATH
+)
+
+if(VB_AUDIO_EXE)
+    cmake_path(GET VB_AUDIO_EXE PARENT_PATH VB_AUDIO_PATH)   # CMake 3.20+
+    message(STATUS "VB Audio Path found: ${VB_AUDIO_PATH}")
+else()
+    message(FATAL_ERROR "VB Audio Matrix not found. Please install it ")
+endif()
 # Build the libraries into the same directory as the C# exe (out/build/<preset>)
 # Set after the FetchContent dependencies so they keep their default locations.
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
@@ -256,12 +263,12 @@ else()
 	message(WARNING "dotnet SDK not found; cannot generate src/app WPF project")
 endif()
 
-add_executable(ReactionMixingServer WIN32 "src/server/ReactionAudioServer.cpp" "src/resources/reaction-mixing-desk.rc")
-target_include_directories(ReactionMixingServer PUBLIC
+add_executable(ReactionMixingCLI WIN32 "src/command-line-interface/ReactionCLI.cpp" "src/resources/reaction-mixing-desk.rc")
+target_include_directories(ReactionMixingCLI PUBLIC
  "${CMAKE_CURRENT_SOURCE_DIR}/src"
 )
 
-target_link_libraries(ReactionMixingServer PRIVATE
+target_link_libraries(ReactionMixingCLI PRIVATE
 	rms_soundengine_static
 	rms_controlsurface_static
 	rms_network_static
