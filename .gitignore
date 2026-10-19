@@ -425,3 +425,4 @@ project/out/
 .vscode/
 desktop.ini
 *.psd
+BuildDefines.g.cs 
