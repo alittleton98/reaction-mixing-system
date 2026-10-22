@@ -28,8 +28,7 @@ if(GIT_FOUND)
         OUTPUT_STRIP_TRAILING_WHITESPACE
     )
 else()
-    set(GIT_COMMIT_COUNT "0")
-    set(GIT_COMMIT_HASH "unknown")
+    message(FATAL_ERROR "Git is not found. This should not be the case")
 endif()
 
 set(RMD_MAJOR_NUMBER "0")
@@ -45,6 +44,36 @@ add_compile_definitions(ASIO_DEVICE_NAME="VB-Matrix VASIO-512")
 # File format hash: SHA-256 of the unsubstituted template, truncated to 32 bits so it is a valid
 # JSON number (and fits a uint32). The substituted copy is written to the build dir.
 set(RMD_FILEFORMAT_JSON "${CMAKE_CURRENT_SOURCE_DIR}/file-formats-in.json")
+
+# Project file field defaults, substituted into file-formats-in.json as @<name>_JSON@ alongside the
+# version. Cached so they can be overridden at configure time, e.g. -DRMD_DEFAULT_METER_VST3=C:/...
+# kind is BOOL, STRING, FILEPATH or NUMBER; strings are escaped and quoted for JSON.
+function(rmd_fileformat_default name kind value doc)
+    if (kind STREQUAL "NUMBER")
+        set(${name} "${value}" CACHE STRING "${doc}")
+        set(json "${${name}}")
+    else()
+        set(${name} "${value}" CACHE ${kind} "${doc}")
+        if (kind STREQUAL "BOOL")
+            if (${name})
+                set(json "true")
+            else()
+                set(json "false")
+            endif()
+        else()
+            string(REPLACE "\\" "\\\\" json "${${name}}")
+            string(REPLACE "\"" "\\\"" json "${json}")
+            set(json "\"${json}\"")
+        endif()
+    endif()
+    set(${name}_JSON "${json}" PARENT_SCOPE)
+endfunction()
+
+rmd_fileformat_default(RMD_DEFAULT_CHANNEL_STRIP_VST3 FILEPATH "" "Default: path to the channel strip VST3")
+rmd_fileformat_default(RMD_DEFAULT_BUS_COMPRESSOR_VST3 FILEPATH "" "Default: path to the bus compressor VST3")
+rmd_fileformat_default(RMD_DEFAULT_METER_VST3 FILEPATH "" "Default: path to the meter VST3")
+rmd_fileformat_default(RMD_DEFAULT_ROUTING_MATRIX NUMBER 0.0 "Default: gain every routing matrix element is filled with")
+
 configure_file("${RMD_FILEFORMAT_JSON}" "${CMAKE_CURRENT_SOURCE_DIR}/src/file-formats.json" @ONLY NEWLINE_STYLE LF)
 
 # Mirror the global compile definitions into the C# project. DefineConstants can't carry values,
@@ -68,7 +97,7 @@ internal static class BuildDefines
 ")
 
 message("")
-find_program(Python3 python)
+find_program(Python3 python REQUIRED)
 if (Python3)
 	message(STATUS "Python3 found: ${Python3}")
 	execute_process(
@@ -89,7 +118,8 @@ endif()
 
 message("Checking for environment variables...")
 if (NOT DEFINED ENV{VST_SSL_NATIVE_CHANNELSTRIP})
-	message(FATAL_ERROR "Environment variable VST_SSL_NATIVE_CHANNELSTRIP not defined")
+	message(WARNING "Environment variable VST_SSL_NATIVE_CHANNELSTRIP not defined")
+
 endif()
 
 if (NOT DEFINED ENV{VST_SSL_4000E_CHANNELSTRIP})

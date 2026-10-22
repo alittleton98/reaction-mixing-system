@@ -3,7 +3,7 @@ namespace ReactionMixingSystem;
 
 public class ReactionProjectfileFmt
 {
-    public const uint Version = 0;
+    public const uint Version = 1;
 
     /// <summary>Whether the Wwise sound engine is enabled</summary>
     public bool InteractiveSoundengineEnabled { get; set; }

@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <string>
 
-constexpr uint32_t ReactionProjectfileFmt_Version = 0;
+constexpr uint32_t ReactionProjectfileFmt_Version = 1;
 
 struct ReactionProjectfileFmt
 {
