@@ -116,28 +116,7 @@ if (POLICY CMP0141)
   set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<IF:$<AND:$<C_COMPILER_ID:MSVC>,$<CXX_COMPILER_ID:MSVC>>,$<$<CONFIG:Debug,RelWithDebInfo>:EditAndContinue>,$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>>")
 endif()
 
-message("Checking for environment variables...")
-if (NOT DEFINED ENV{VST_SSL_NATIVE_CHANNELSTRIP})
-	message(WARNING "Environment variable VST_SSL_NATIVE_CHANNELSTRIP not defined")
 
-endif()
-
-if (NOT DEFINED ENV{VST_SSL_4000E_CHANNELSTRIP})
-	message(FATAL_ERROR "Environment variable VST_SSL_4000E_CHANNELSTRIP not defined")
-endif()
-
-if (NOT DEFINED ENV{VST_SSL_4000G_CHANNELSTRIP})
-	message(FATAL_ERROR "Environment variable VST_SSL_4000G_CHANNELSTRIP not defined")
-endif()
-
-if (NOT DEFINED ENV{VST_SSL_NATIVE_BUSCOMPRESSOR})
-	message(FATAL_ERROR "Environment variable VST_SSL_NATIVE_BUSCOMPRESSOR not defined")
-endif()
-
-if (NOT DEFINED ENV{VST_SSL_METER})
-	message(FATAL_ERROR "Environment variable VST_SSL_METER not defined")
-endif()
-message("")
 
 message("Checking for dependencies...")
 # Dependencies

@@ -11,7 +11,7 @@
     },
     {
       "name": "soundengine_project_path",
-      "default": @RMD_DEFAULT_SOUNDENGINE_PROJECT_PATH_JSON@,
+      "default": "",
       "type": "string",
       "description": "Path to the Wwise project file"
     },
@@ -35,7 +35,7 @@
     },
     {
       "name": "bus_compressor_vst3",
-      "default": true,
+      "default": @RMD_DEFAULT_BUS_COMPRESSOR_VST3_JSON@,
       "type": "string",
       "description": "path to the VST SSL Native Channel Strip 2"
     },

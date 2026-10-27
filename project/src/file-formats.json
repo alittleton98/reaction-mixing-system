@@ -1,6 +1,6 @@
 {
   "name": "reaction-projectfile-fmt",
-  "version": [ 1 ],
+  "version": [ 2 ],
   "description": "Reaction Project File Format. Loaded by the server and client for persistent storage of the last state of the project",
   "fields": [
     {
@@ -11,7 +11,7 @@
     },
     {
       "name": "soundengine_project_path",
-      "default": ,
+      "default": "",
       "type": "string",
       "description": "Path to the Wwise project file"
     },
@@ -35,7 +35,7 @@
     },
     {
       "name": "bus_compressor_vst3",
-      "default": true,
+      "default": "",
       "type": "string",
       "description": "path to the VST SSL Native Channel Strip 2"
     },

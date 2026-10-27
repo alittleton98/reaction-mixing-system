@@ -3,26 +3,26 @@ namespace ReactionMixingSystem;
 
 public class ReactionProjectfileFmt
 {
-    public const uint Version = 1;
+    public const uint Version = 2;
 
     /// <summary>Whether the Wwise sound engine is enabled</summary>
-    public bool InteractiveSoundengineEnabled { get; set; }
+    public bool InteractiveSoundengineEnabled { get; set; } = true;
     /// <summary>Path to the Wwise project file</summary>
     public string SoundengineProjectPath { get; set; } = "";
     /// <summary>Whether the VST SSL Native Channel Strip 2 is enabled</summary>
-    public bool ChannelStripVst3Enabled { get; set; }
+    public bool ChannelStripVst3Enabled { get; set; } = true;
     /// <summary>path to the VST SSL Native Channel Strip 2</summary>
     public string ChannelStripVst3 { get; set; } = "";
     /// <summary>Whether the VST SSL Native Channel Strip 2 is enabled</summary>
-    public bool BusCompressorVst3Enabled { get; set; }
+    public bool BusCompressorVst3Enabled { get; set; } = true;
     /// <summary>path to the VST SSL Native Channel Strip 2</summary>
     public string BusCompressorVst3 { get; set; } = "";
     /// <summary>Whether the VST SSL Native Channel Strip 2 is enabled</summary>
-    public bool MeterVst3Enabled { get; set; }
+    public bool MeterVst3Enabled { get; set; } = true;
     /// <summary>path to the VST SSL Native Channel Strip 2</summary>
     public string MeterVst3 { get; set; } = "";
     /// <summary>Whether the routing matrix is enabled</summary>
-    public bool RoutingMatrixEnabled { get; set; }
+    public bool RoutingMatrixEnabled { get; set; } = true;
     /// <summary>Routing matrix gains, indexed [input channel][output channel] (512 x 512). ALLOCATE ON THE HEAP</summary>
     public float[,] RoutingMatrix { get; set; } = new float[512, 512];
 }

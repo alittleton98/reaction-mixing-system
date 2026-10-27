@@ -4,28 +4,28 @@
 #include <cstdint>
 #include <string>
 
-constexpr uint32_t ReactionProjectfileFmt_Version = 1;
+constexpr uint32_t ReactionProjectfileFmt_Version = 2;
 
 struct ReactionProjectfileFmt
 {
 	/// Whether the Wwise sound engine is enabled
-	bool interactive_soundengine_enabled{};
+	bool interactive_soundengine_enabled{true};
 	/// Path to the Wwise project file
 	std::string soundengine_project_path{};
 	/// Whether the VST SSL Native Channel Strip 2 is enabled
-	bool channel_strip_vst3_enabled{};
+	bool channel_strip_vst3_enabled{true};
 	/// path to the VST SSL Native Channel Strip 2
 	std::string channel_strip_vst3{};
 	/// Whether the VST SSL Native Channel Strip 2 is enabled
-	bool bus_compressor_vst3_enabled{};
+	bool bus_compressor_vst3_enabled{true};
 	/// path to the VST SSL Native Channel Strip 2
 	std::string bus_compressor_vst3{};
 	/// Whether the VST SSL Native Channel Strip 2 is enabled
-	bool meter_vst3_enabled{};
+	bool meter_vst3_enabled{true};
 	/// path to the VST SSL Native Channel Strip 2
 	std::string meter_vst3{};
 	/// Whether the routing matrix is enabled
-	bool routing_matrix_enabled{};
+	bool routing_matrix_enabled{true};
 	/// Routing matrix gains, indexed [input channel][output channel] (512 x 512). ALLOCATE ON THE HEAP
 	std::array<std::array<float, 512>, 512> routing_matrix{};
 };
