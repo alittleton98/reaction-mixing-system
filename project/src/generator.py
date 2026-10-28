@@ -1,10 +1,11 @@
 import json
 import os
+import sys
 
 SRC_DIR = os.path.dirname(os.path.abspath(__file__))
 FORMAT_JSON = os.path.join(SRC_DIR, "file-formats.json")
-CPP_OUT = os.path.join(SRC_DIR, "common", "public", "ReactionBinaryFileFormats.generated.h")
-CS_OUT = os.path.join(SRC_DIR, "app", "ReactionBinaryFileFormats.g.cs")
+CPP_OUT = os.path.join(SRC_DIR, "common", "public", "NexusBinaryFileFormats.generated.h")
+CS_OUT = os.path.join(SRC_DIR, "app", "NexusBinaryFileFormats.g.cs")
 
 json_type_to_csharp_type = {
     "string": "string",
@@ -172,7 +173,7 @@ def generate_cpp(struct_name, version, fields):
 
 
 def generate_cs(struct_name, version, fields):
-    lines = [HEADER_COMMENT, "namespace ReactionMixingSystem;", ""]
+    lines = [HEADER_COMMENT, "namespace NexusMixingSystem;", ""]
     lines.append(f"public class {struct_name}")
     lines.append("{")
     lines.append(f"    public const uint Version = {version};")
@@ -195,6 +196,22 @@ def generate_cs(struct_name, version, fields):
     lines.append("}")
     return "\n".join(lines) + "\n"
 
+import sysconfig
+from pathlib import Path
+site_packages = Path(sysconfig.get_paths()["purelib"])
+def generate_module_stubs(module_name:str, output_dir:Path) -> bool:
+    import pybind11_stubgen
+    old_argv = sys.argv
+    sys.argv = ["pybind11-stubgen", module_name, "-o", str(output_dir)]
+    try:
+        pybind11_stubgen.main()
+    except SystemExit as e:
+        if e.code != 0:
+            print(f"Error generating stubs for module '{module_name}': exit code {e.code}")
+            return False
+    finally:
+        sys.argv = old_argv
+    return True
 
 def main():
     with open(FORMAT_JSON, "r") as f:

@@ -4,9 +4,9 @@
 #include <cstdint>
 #include <string>
 
-constexpr uint32_t ReactionProjectfileFmt_Version = 2;
+constexpr uint32_t NexusProjectfileFmt_Version = 3;
 
-struct ReactionProjectfileFmt
+struct NexusProjectfileFmt
 {
 	/// Whether the Wwise sound engine is enabled
 	bool interactive_soundengine_enabled{true};

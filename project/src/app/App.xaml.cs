@@ -3,7 +3,7 @@ using System.Data;
 using System.Windows;
 using System.Windows.Threading;
 
-namespace ReactionMixingSystem;
+namespace NexusMixingSystem;
 
 /// <summary>
 /// Interaction logic for App.xaml

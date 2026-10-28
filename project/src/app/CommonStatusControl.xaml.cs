@@ -1,7 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 
-namespace ReactionMixingSystem;
+namespace NexusMixingSystem;
 
 /// <summary>
 /// Interaction logic for CommonStatusControl.xaml

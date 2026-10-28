@@ -1,7 +1,7 @@
 {
-  "name": "reaction-projectfile-fmt",
-  "version": [ @RMD_FILEFORMAT_VERSION@ ],
-  "description": "Reaction Project File Format. Loaded by the server and client for persistent storage of the last state of the project",
+  "name": "nexus-projectfile-fmt",
+  "version": [ @NMS_FILEFORMAT_VERSION@ ],
+  "description": "Nexus Project File Format. Loaded by the server and client for persistent storage of the last state of the project",
   "fields": [
     {
       "name": "interactive_soundengine_enabled",
@@ -23,7 +23,7 @@
     },
     {
       "name": "channel_strip_vst3",
-      "default": @RMD_DEFAULT_CHANNEL_STRIP_VST3_JSON@,
+      "default": @NMS_DEFAULT_CHANNEL_STRIP_VST3_JSON@,
       "type": "string",
       "description": "path to the VST SSL Native Channel Strip 2"
     },
@@ -35,7 +35,7 @@
     },
     {
       "name": "bus_compressor_vst3",
-      "default": @RMD_DEFAULT_BUS_COMPRESSOR_VST3_JSON@,
+      "default": @NMS_DEFAULT_BUS_COMPRESSOR_VST3_JSON@,
       "type": "string",
       "description": "path to the VST SSL Native Channel Strip 2"
     },
@@ -47,7 +47,7 @@
     },
     {
       "name": "meter_vst3",
-      "default": @RMD_DEFAULT_METER_VST3_JSON@,
+      "default": @NMS_DEFAULT_METER_VST3_JSON@,
       "type": "string",
       "description": "path to the VST SSL Native Channel Strip 2"
     },
@@ -59,7 +59,7 @@
     },
     {
       "name": "routing_matrix",
-      "default": @RMD_DEFAULT_ROUTING_MATRIX_JSON@,
+      "default": @NMS_DEFAULT_ROUTING_MATRIX_JSON@,
       "type": "float",
       "dimensions": [ 512, 512 ],
       "description": "Routing matrix gains, indexed [input channel][output channel] (512 x 512). ALLOCATE ON THE HEAP"

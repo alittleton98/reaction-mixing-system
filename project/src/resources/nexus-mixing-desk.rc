@@ -66,13 +66,13 @@ BLOCK "StringFileInfo"
 BEGIN
 BLOCK "040904b0"
 BEGIN
-VALUE "CompanyName", "Reaction Digital LLC"
-VALUE "FileDescription", "Reaction Mixing Desk"
+VALUE "CompanyName", "Nexus Digital LLC"
+VALUE "FileDescription", "Nexus Mixing Desk"
 VALUE "FileVersion", "1.0.0.1"
-VALUE "InternalName", "Reaction"
+VALUE "InternalName", "Nexus"
 VALUE "LegalCopyright", "Copyright (C) 2026"
 VALUE "OriginalFilename", "TODO: <Original filename>"
-VALUE "ProductName", "Reaction Mixing Desk"
+VALUE "ProductName", "Nexus Mixing Desk"
 VALUE "ProductVersion", "1.0.0.1"
 END
 END

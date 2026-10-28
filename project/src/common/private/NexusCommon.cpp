@@ -1,7 +1,8 @@
-#define WIN32_LEAN_AND_MEAN
 
-#include "ReactionSoundEngine.h"
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+
+const char* SanityCheck = "E:\\Dev\\reaction-mixing-desk\\project\\src\\common\\public\\Sanity.nxs";
 
 BOOL APIENTRY DllMain( HMODULE /*module*/, DWORD reason, LPVOID /*reserved*/ )
 {
@@ -16,10 +17,4 @@ BOOL APIENTRY DllMain( HMODULE /*module*/, DWORD reason, LPVOID /*reserved*/ )
 	return TRUE;
 }
 
-namespace rms::soundengine
-{
-	const char* LibraryName()
-	{
-		return "rms_soundengine";
-	}
-}
+

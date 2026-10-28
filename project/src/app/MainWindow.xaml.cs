@@ -10,7 +10,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
-namespace ReactionMixingSystem;
+namespace NexusMixingSystem;
 
 /// <summary>
 /// Interaction logic for MainWindow.xaml
@@ -18,15 +18,19 @@ namespace ReactionMixingSystem;
 public partial class MainWindow : Window
 {
     //private const string icon = "pack://application:,,,/Resources/sound-wave-color.ico";
-    private const string rmsCommonLibrary = "rms_common.dll";
+    private const string nmsCommonLibrary = "nms_common.dll";
 
-    [DllImport(rmsCommonLibrary, CallingConvention = CallingConvention.Cdecl)]
+    [DllImport(nmsCommonLibrary, CallingConvention = CallingConvention.Cdecl, EntryPoint = NexusCommon_Initialize)]
     [return: MarshalAs(UnmanagedType.U1)]
-    private static extern bool ReactionCommon_Initialize();
+    private static partial bool NexusCommon_Initialize();
 
-    [DllImport(rmsCommonLibrary, CallingConvention = CallingConvention.Cdecl)]
+    [DllImport(nmsCommonLibrary, CallingConvention = CallingConvention.Cdecl)]
     [return: MarshalAs(UnmanagedType.U1)]
-    private static extern bool ReactionCommon_Deinitialize();
+    private static extern bool NexusCommon_Deinitialize();
+
+    [DllImport(nmsCommonLibrary, CallingConvention = CallingConvention.Cdecl)]
+    [return: MarshalAs(UnmanagedType.U1)]
+    private static extern bool NexusCommon_SanityCheckScripting();
 
     public MainWindow()
     {
@@ -34,17 +38,31 @@ public partial class MainWindow : Window
         SourceInitialized += (_, _) => DarkTitleBar.Apply(this);
     }
 
-    public void Button_Click(object sender, RoutedEventArgs e)
+    public void Button_Click_Init(object sender, RoutedEventArgs e)
     {
-        bool check = ReactionCommon_Initialize();
+        bool check = NexusCommon_Initialize();
         CommonStatus.SetStatus(check ? "Initialized" : "Initialization failed");
         if (!check)
         {
-            MessageBox.Show("Failed to initialize the Reaction Common Library.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show("Failed to initialize the Nexus Common Library.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
         else
         {
-            MessageBox.Show("Successfully initialized the Reaction Common Library.", "Display", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show("Successfully initialized the Nexus Common Library.", "Display", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+    }
+
+    public void Button_Click_Script(object sender, RoutedEventArgs e)
+    {
+        bool check = NexusCommon_SanityCheckScripting();
+        CommonStatus.SetStatus(check ? "Initialized" : "Initialization failed");
+        if (!check)
+        {
+            MessageBox.Show("Failed to initialize the Nexus Common Library.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        else
+        {
+            MessageBox.Show("Successfully initialized the Nexus Common Library.", "Display", MessageBoxButton.OK, MessageBoxImage.Information);
         }
     }
 }
