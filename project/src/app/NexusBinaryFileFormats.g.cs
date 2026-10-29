@@ -3,7 +3,7 @@ namespace NexusMixingSystem;
 
 public class NexusProjectfileFmt
 {
-    public const uint Version = 3;
+    public const uint Version = 4;
 
     /// <summary>Whether the Wwise sound engine is enabled</summary>
     public bool InteractiveSoundengineEnabled { get; set; } = true;

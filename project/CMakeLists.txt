@@ -40,6 +40,14 @@ add_compile_definitions(NMS_MINOR_NUMBER=1)
 add_compile_definitions(NMS_BUILD_NUMBER=${GIT_COMMIT_COUNT})
 add_compile_definitions(NMS_VERSION_STRING="${NMS_MAJOR_NUMBER}.${NMS_MINOR_NUMBER}.${NMS_BUILD_NUMBER}")
 add_compile_definitions(ASIO_DEVICE_NAME="VB-Matrix VASIO-512")
+# Build the libraries into the same directory as the C# exe (out/build/<preset>)
+# Set after the FetchContent dependencies so they keep their default locations.
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
+set(SCRIPT_DIRECTORY "${CMAKE_BINARY_DIR}/script/")
+set(SCRIPT_DEFAULT_NAME "default-nmsconfig")
+set(SCRIPT_FILE_EXTENSION ".nxs")
 
 # File format hash: SHA-256 of the unsubstituted template, truncated to 32 bits so it is a valid
 # JSON number (and fits a uint32). The substituted copy is written to the build dir.
@@ -93,6 +101,9 @@ internal static class BuildDefines
     public const int NmsBuildNumber = ${NMS_BUILD_NUMBER};
     public const string NmsVersionString = \"${NMS_MAJOR_NUMBER}.${NMS_MINOR_NUMBER}.${NMS_BUILD_NUMBER}\";
     public const string AsioDeviceName = \"${NMS_CS_ASIO_DEVICE_NAME}\";
+	public const string ScriptOutputDirectory = \"${SCRIPT_DIRECTORY}\";
+	public const string ScriptDefaultName = \"${SCRIPT_DEFAULT_NAME}\";
+	public const string ScriptFileExtension = \"${SCRIPT_FILE_EXTENSION}\";
 }
 ")
 
@@ -167,19 +178,21 @@ if(VB_AUDIO_EXE)
 else()
     message(FATAL_ERROR "VB Audio Matrix not found. Please install it ")
 endif()
-# Build the libraries into the same directory as the C# exe (out/build/<preset>)
-# Set after the FetchContent dependencies so they keep their default locations.
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
-set(SCRIPT_DIRECTORY "${CMAKE_BINARY_DIR}/script")
+
+
+
 
 # Each nms_<name> builds as a SHARED lib (dll + import lib, used by the C# app) and as a
 # STATIC lib (nms_<name>_static, linked into the server) from the same sources.
 function(nms_add_library name class)
+	file(GLOB_RECURSE MODULE_SOURCE_FILES
+	"src/${name}/private/*.cpp"
+	)
 	set(sources
 		src/${name}/private/${class}.cpp
 		src/${name}/public/${class}.h
+		${MODULE_SOURCE_FILES}
+		${ARGN}
 		${ASIOSDK_SOURCE} 
 		"${vst3sdk_SOURCE_DIR}/public.sdk/source/vst/hosting/module_win32.cpp"
 	)
@@ -190,7 +203,9 @@ function(nms_add_library name class)
 		endif()
 		add_library(${target} ${kind} ${sources})
 		target_include_directories(${target}
-			PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR}/src/${name}/public
+			PUBLIC  
+			${CMAKE_CURRENT_SOURCE_DIR}/src/${name}/public
+			${CMAKE_CURRENT_SOURCE_DIR}/src
 			"${WWISE_SDK_PATH}/include" 
 			"${WWISE_SDK_PATH}/samples" 
 			"${CMAKE_CURRENT_SOURCE_DIR}/src"
@@ -212,9 +227,18 @@ function(nms_add_library name class)
 		)
 		target_compile_features(${target} PUBLIC cxx_std_20)
 		target_compile_definitions(${target} PRIVATE NEXUS_SCRIPT_MODULE_ID=nms_${name})
+		target_compile_definitions(${target} PRIVATE "SCRIPT_OUTPUT_DIRECTORY=R\"(${SCRIPT_DIRECTORY})\"")
 		find_program(PYTHON_EXECUTABLE python3)
 		target_compile_definitions(${target} PRIVATE PYTHONDIR=${PYTHON_EXECUTABLE})
 		set_target_properties(${target} PROPERTIES CXX_STANDARD 20)
+		target_compile_definitions(${target} PRIVATE IEEE754_64FLOAT=1)
+		if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+			target_compile_definitions(${target} PRIVATE DEBUG_CONFIG=1 RELEASE_CONFIG=0)
+		elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
+			target_compile_definitions(${target} PRIVATE DEBUG_CONFIG=0 RELEASE_CONFIG=1)
+		else()
+			message(FATAL_ERROR "Unsupported build configuration. Use Debug or Release")
+		endif()
 	endforeach()
 	set_target_properties(nms_${name} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
 endfunction()
@@ -222,7 +246,7 @@ endfunction()
 nms_add_library(soundengine NexusSoundEngine)
 nms_add_library(controlsurface NexusControlSurface)
 nms_add_library(network NexusNetwork)
-nms_add_library(common NexusCommon)
+nms_add_library(common NexusCommon src/common/private/NexusServer.cpp src/common/public/NexusServer.h)
 
 # C# WPF APPLICATION
 # The WPF project is scaffolded once (when src/app has no App.xaml); the csproj is
@@ -308,6 +332,15 @@ target_include_directories(NexusMixingCLI PUBLIC
  "${CMAKE_CURRENT_SOURCE_DIR}/src"
 )
 
+# Global Definitions
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+	target_compile_definitions(NexusMixingCLI PRIVATE DEBUG_CONFIG=1 RELEASE_CONFIG=0)
+elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
+	target_compile_definitions(NexusMixingCLI PRIVATE DEBUG_CONFIG=0 RELEASE_CONFIG=1)
+else()
+	message(FATAL_ERROR "Unsupported build configuration. Use Debug or Release")
+endif()
+
 target_link_libraries(NexusMixingCLI PRIVATE
 	nms_soundengine_static
 	nms_controlsurface_static
@@ -320,3 +353,42 @@ target_link_libraries(NexusMixingCLI PRIVATE
 add_custom_command(TARGET NexusMixingCLI PRE_BUILD
 	COMMAND "${CMAKE_COMMAND}" -E true
 )
+
+if(CMAKE_SIZEOF_VOID_P EQUAL 8) 
+	if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+		file(GLOB WWISE_LIBS "${WWISE_SDK_PATH}/x64_vc170/Debug/lib/*.lib")
+		foreach (libfile IN LISTS WWISE_LIBS)
+			message(STATUS "Linking Debug Wwise libs to Debug configuration: ${libfile}")
+		endforeach()
+		target_link_libraries(nms_soundengine_static PRIVATE ${WWISE_LIBS} ws2_32)
+		target_link_libraries(nms_soundengine PRIVATE ${WWISE_LIBS} ws2_32)
+	# Use Profile configuration because we need to be able to communicate with the Sound Engine
+	elseif(CMAKE_BUILD_TYPE STREQUAL "Release")	
+		file(GLOB WWISE_LIBS "${WWISE_SDK_PATH}/x64_vc170/Profile/lib/*.lib")
+		target_link_libraries(nms_soundengine_static PRIVATE ${WWISE_LIBS} ws2_32)
+		target_link_libraries(nms_soundengine PRIVATE ${WWISE_LIBS} ws2_32)
+	else()
+		message(FATAL_ERROR "Unsupported build configuration. Use Debug or Release")
+	endif()
+else()
+	message(FATAL_ERROR "Unsupported architecture. Chaotic pointer size")
+endif()
+
+if(CMAKE_SIZEOF_VOID_P EQUAL 8) 
+	if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+		file(GLOB WWISE_LIBS "${WWISE_SDK_PATH}/x64_vc170/Debug/lib/*.lib")
+		foreach (libfile IN LISTS WWISE_LIBS)
+			message(STATUS "Linking Debug Wwise libs to Debug configuration: ${libfile}")
+		endforeach()
+		target_link_libraries(NexusMixingCLI PRIVATE ${WWISE_LIBS} ws2_32)
+	# Use Profile configuration because we need to be able to communicate with the Sound Engine
+	elseif(CMAKE_BUILD_TYPE STREQUAL "Release")	
+		file(GLOB WWISE_LIBS "${WWISE_SDK_PATH}/x64_vc170/Profile/lib/*.lib")
+		target_link_libraries(NexusMixingCLI PRIVATE ${WWISE_LIBS} ws2_32)
+	else()
+		message(FATAL_ERROR "Unsupported build configuration. Use Debug or Release")
+	endif()
+else()
+	message(FATAL_ERROR "Unsupported architecture. Chaotic pointer size")
+endif()
+target_compile_definitions(NexusMixingCLI PRIVATE IEEE754_64FLOAT=1)

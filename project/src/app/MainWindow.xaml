@@ -15,10 +15,12 @@
         <Grid.RowDefinitions>
             <RowDefinition Height=".25*"></RowDefinition>
             <RowDefinition Height="*"></RowDefinition>
+            <RowDefinition Height="160"></RowDefinition>
         </Grid.RowDefinitions>
         <local:CommonStatusControl x:Name="CommonStatus" Grid.Row="1" Grid.Column="1"
                                    HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
                                    InitializeRequested="Button_Click_Init"/>
-       
+        <local:CommandLineControl x:Name="CommandLine" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
+                                  HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
     </Grid>
 </Window>

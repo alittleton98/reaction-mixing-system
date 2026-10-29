@@ -1,6 +1,6 @@
 {
   "name": "nexus-projectfile-fmt",
-  "version": [ 3 ],
+  "version": [ 4 ],
   "description": "Nexus Project File Format. Loaded by the server and client for persistent storage of the last state of the project",
   "fields": [
     {

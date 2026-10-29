@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <string>
 
-constexpr uint32_t NexusProjectfileFmt_Version = 3;
+constexpr uint32_t NexusProjectfileFmt_Version = 4;
 
 struct NexusProjectfileFmt
 {

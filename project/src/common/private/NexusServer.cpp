@@ -1,6 +1,11 @@
-#include "NexusServer.h"
+#include "common/public/NexusServer.h"
 
-bool NexusServer::Initialize()
+PYBIND11_EMBEDDED_MODULE( nms_server, pyModule )
+{}
+
+NexusServer NexusServer::globalServer;
+
+bool NexusServer::InitializeScriptModule()
 {
 	// Placeholder for server initialization logic
 	// In a real implementation, this function would set up the server environment,
@@ -9,7 +14,7 @@ bool NexusServer::Initialize()
 	return m_bInitialized;
 }
 
-bool NexusServer::Shutdown()
+bool NexusServer::ShutdownScriptModule()
 {
 	// Placeholder for server shutdown logic
 	// In a real implementation, this function would clean up resources,
@@ -26,50 +31,78 @@ bool NexusServer::CompileScripts()
 	return true;
 }
 
-bool InitializeInterpreter()
+bool NexusServer::InitializeInterpreter()
 {
+	if ( m_bInterpreterInitialized )
+	{
+		return true;
+	}
+
+	python::initialize_interpreter();
+	m_bInterpreterInitialized = true;
+
+	python::module_ sys = python::module_::import( "sys" );
+	sys.attr( "path" ).attr( "insert" )( 0, SCRIPT_OUTPUT_DIRECTORY );
 	return true;
 }
-bool FinalizeInterpreter()
+bool NexusServer::FinalizeInterpreter()
 {
+	if ( m_bInterpreterInitialized )
+	{
+		python::finalize_interpreter();
+		m_bInterpreterInitialized = false;
+	}
 	return true;
 }
-bool LoadScriptModule( const string& scriptPath )
+bool NexusServer::LoadUserScriptModule( const char* scriptName )
 {
-	return true;
+	bool bIsLoaded = false;
+	python::module_ scriptModule;
+	if ( !m_bInterpreterInitialized )
+	{
+		return false;
+	}
+
+	try
+	{
+		scriptModule = python::module_::import( scriptName );
+	}
+	catch ( exception& e )
+	{
+		std::cerr << "Error importing module '" << scriptName << "': " << e.what() << std::endl;
+		return false;
+	}
+
+	try
+	{
+		python::object result = scriptModule.attr( "OnScriptModuleLoaded" )( );
+		bIsLoaded = result.cast<bool>();
+	}
+	catch ( exception& e )
+	{
+		std::cerr << "Error calling OnScriptModuleLoaded in '" << scriptName << "': " << e.what() << std::endl;
+		return false;
+	}
+
+	return bIsLoaded;
 }
 
 extern "C"
 {
-	bool NEXUSSERVER_API InitializeServer( NexusServer& Server )
+	bool NEXUSSERVER_API InitializeServer()
 	{
-		bool bSuccess = false;
-		Server = NexusServer();
-		if ( !Server )
-		{
-			return bSuccess;
-		}
-
-		bSuccess = Server.InitializeInterpreter();
-		bSuccess = Server.LoadScriptModule();
-
-		return ServerInitialize();
+		NexusServer* server = NexusServer::Get();
+		return server->InitializeScriptModule() && server->InitializeInterpreter();
 	}
-
-	bool NEXUSSERVER_API CompileScripts( NexusServer* Server )
+	bool NEXUSSERVER_API ShutdownServer()
 	{
-		if ( !Server )
+		NexusServer* server = NexusServer::Get();
+		if ( !server->IsInitialized() )
 		{
 			return false;
 		}
-		return true;
-	}
-	bool NEXUSSERVER_API ShutdownServer( NexusServer* Server )
-	{
-		if ( !Server )
-		{
-			return false;
-		}
-		return Server->Shutdown();
+		bool bSuccess = server->FinalizeInterpreter();
+		bSuccess = server->ShutdownScriptModule() && bSuccess;
+		return bSuccess;
 	}
 };

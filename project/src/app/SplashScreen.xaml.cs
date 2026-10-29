@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -43,9 +44,8 @@ namespace NexusMixingSystem
         {
             try
             {
-                await Task.Delay(NameDuration);
-                //splashScreen.Source = new BitmapImage(new Uri(splashScreenBlank));
-                await Task.Delay(SplashDuration);
+                SetStatus("Sound Engine Init...");
+                NMS_NativeCode.NexusSoundEngine_InitializeSoundEngine();
             }
             finally
             {

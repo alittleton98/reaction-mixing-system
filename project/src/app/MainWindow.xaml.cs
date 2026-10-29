@@ -20,9 +20,9 @@ public partial class MainWindow : Window
     //private const string icon = "pack://application:,,,/Resources/sound-wave-color.ico";
     private const string nmsCommonLibrary = "nms_common.dll";
 
-    [DllImport(nmsCommonLibrary, CallingConvention = CallingConvention.Cdecl, EntryPoint = NexusCommon_Initialize)]
+    [DllImport(nmsCommonLibrary, CallingConvention = CallingConvention.Cdecl)]
     [return: MarshalAs(UnmanagedType.U1)]
-    private static partial bool NexusCommon_Initialize();
+    private static extern bool NexusCommon_Initialize();
 
     [DllImport(nmsCommonLibrary, CallingConvention = CallingConvention.Cdecl)]
     [return: MarshalAs(UnmanagedType.U1)]
@@ -32,6 +32,11 @@ public partial class MainWindow : Window
     [return: MarshalAs(UnmanagedType.U1)]
     private static extern bool NexusCommon_SanityCheckScripting();
 
+    private const string nmsSoundEngineLibrary = "nms_soundengine.dll";
+    [DllImport(nmsSoundEngineLibrary, CallingConvention = CallingConvention.Cdecl)]
+    [return: MarshalAs(UnmanagedType.U1)]
+    private static extern bool NexusSoundEngine_InitializeSoundEngine();
+
     public MainWindow()
     {
         InitializeComponent();
@@ -40,7 +45,7 @@ public partial class MainWindow : Window
 
     public void Button_Click_Init(object sender, RoutedEventArgs e)
     {
-        bool check = NexusCommon_Initialize();
+        bool check = NexusSoundEngine_InitializeSoundEngine();
         CommonStatus.SetStatus(check ? "Initialized" : "Initialization failed");
         if (!check)
         {
