@@ -1,0 +1,21 @@
+<UserControl x:Class="NexusMixingSystem.CommandLineControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="150" d:DesignWidth="800">
+    <Border BorderBrush="Gray" BorderThickness="1" Margin="4">
+        <DockPanel>
+            <DockPanel DockPanel.Dock="Top" Margin="8,4">
+                <Button x:Name="ClearButton" DockPanel.Dock="Right" Content="Clear" Padding="8,0" Click="ClearButton_Click"/>
+                <TextBlock Text="Output" FontWeight="Bold" Foreground="#FFDCDCDC" VerticalAlignment="Center"/>
+            </DockPanel>
+            <TextBox x:Name="OutputBox" IsReadOnly="True" IsReadOnlyCaretVisible="False"
+                     FontFamily="Consolas" FontSize="12"
+                     Background="#FF0C0C0C" Foreground="#FFCCCCCC" BorderThickness="0"
+                     TextWrapping="NoWrap"
+                     HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"/>
+        </DockPanel>
+    </Border>
+</UserControl>

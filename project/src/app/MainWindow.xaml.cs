@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.IO;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -10,41 +11,34 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
-namespace ReactionMixingSystem;
+namespace NexusMixingSystem;
 
 /// <summary>
 /// Interaction logic for MainWindow.xaml
 /// </summary>
 public partial class MainWindow : Window
 {
-    //private const string icon = "pack://application:,,,/Resources/sound-wave-color.ico";
-    private const string rmsCommonLibrary = "rms_common.dll";
-
-    [DllImport(rmsCommonLibrary, CallingConvention = CallingConvention.Cdecl)]
-    [return: MarshalAs(UnmanagedType.U1)]
-    private static extern bool ReactionCommon_Initialize();
-
-    [DllImport(rmsCommonLibrary, CallingConvention = CallingConvention.Cdecl)]
-    [return: MarshalAs(UnmanagedType.U1)]
-    private static extern bool ReactionCommon_Deinitialize();
 
     public MainWindow()
     {
         InitializeComponent();
         SourceInitialized += (_, _) => DarkTitleBar.Apply(this);
+
     }
 
-    public void Button_Click(object sender, RoutedEventArgs e)
+    public void Button_Click_Init(object sender, RoutedEventArgs e)
     {
-        bool check = ReactionCommon_Initialize();
+        App.WriteLog("Testing");
+        bool check = true;
         CommonStatus.SetStatus(check ? "Initialized" : "Initialization failed");
+        NMS_NativeCode.NexusSoundEngine_InitializeSoundEngine();
         if (!check)
         {
-            MessageBox.Show("Failed to initialize the Reaction Common Library.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show("Failed to initialize the Nexus Common Library.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
         else
         {
-            MessageBox.Show("Successfully initialized the Reaction Common Library.", "Display", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show("Successfully initialized the Nexus Common Library.", "Display", MessageBoxButton.OK, MessageBoxImage.Information);
         }
     }
 }

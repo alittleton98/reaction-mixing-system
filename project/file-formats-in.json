@@ -1,55 +1,65 @@
 {
-  "name": "reaction-projectfile-fmt",
-  "version": [ @RMD_FILEFORMAT_VERSION@ ],
-  "description": "Reaction Project File Format. Loaded by the server and client for persistent storage of the last state of the project",
+  "name": "nexus-projectfile-fmt",
+  "version": [ @NMS_FILEFORMAT_VERSION@ ],
+  "description": "Nexus Project File Format. Loaded by the server and client for persistent storage of the last state of the project",
   "fields": [
     {
       "name": "interactive_soundengine_enabled",
+      "default": true,
       "type": "bool",
       "description": "Whether the Wwise sound engine is enabled"
     },
     {
       "name": "soundengine_project_path",
+      "default": "",
       "type": "string",
       "description": "Path to the Wwise project file"
     },
     {
       "name": "channel_strip_vst3_enabled",
+      "default": true,
       "type": "bool",
       "description": "Whether the VST SSL Native Channel Strip 2 is enabled"
     },
     {
       "name": "channel_strip_vst3",
+      "default": @NMS_DEFAULT_CHANNEL_STRIP_VST3_JSON@,
       "type": "string",
       "description": "path to the VST SSL Native Channel Strip 2"
     },
     {
       "name": "bus_compressor_vst3_enabled",
+      "default": true,
       "type": "bool",
       "description": "Whether the VST SSL Native Channel Strip 2 is enabled"
     },
     {
       "name": "bus_compressor_vst3",
+      "default": @NMS_DEFAULT_BUS_COMPRESSOR_VST3_JSON@,
       "type": "string",
       "description": "path to the VST SSL Native Channel Strip 2"
     },
     {
       "name": "meter_vst3_enabled",
+      "default": true,
       "type": "bool",
       "description": "Whether the VST SSL Native Channel Strip 2 is enabled"
     },
     {
       "name": "meter_vst3",
+      "default": @NMS_DEFAULT_METER_VST3_JSON@,
       "type": "string",
       "description": "path to the VST SSL Native Channel Strip 2"
     },
     {
       "name": "routing_matrix_enabled",
+      "default": true,
       "type": "bool",
       "description": "Whether the routing matrix is enabled"
     },
     {
       "name": "routing_matrix",
+      "default": @NMS_DEFAULT_ROUTING_MATRIX_JSON@,
       "type": "float",
       "dimensions": [ 512, 512 ],
       "description": "Routing matrix gains, indexed [input channel][output channel] (512 x 512). ALLOCATE ON THE HEAP"

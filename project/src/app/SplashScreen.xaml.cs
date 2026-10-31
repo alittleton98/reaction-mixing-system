@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -11,7 +12,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 
-namespace ReactionMixingSystem
+namespace NexusMixingSystem
 {
     /// <summary>
     /// Interaction logic for SplashScreen.xaml
@@ -33,7 +34,7 @@ namespace ReactionMixingSystem
         {
             InitializeComponent();
             splashStatus.Text = "Starting...";
-            splashVersion.Text = $"v{BuildDefines.RmdVersionString}";
+            splashVersion.Text = $"v{BuildDefines.NmsVersionString}";
             splashScreen.Source = new BitmapImage(new Uri(splashScreenName));
             Loaded += async (_, _) => await InitializeModules();
         }
@@ -43,9 +44,8 @@ namespace ReactionMixingSystem
         {
             try
             {
-                await Task.Delay(NameDuration);
-                //splashScreen.Source = new BitmapImage(new Uri(splashScreenBlank));
-                await Task.Delay(SplashDuration);
+                SetStatus("");
+                NMS_NativeCode.NexusSoundEngine_InitializeSoundEngine();
             }
             finally
             {

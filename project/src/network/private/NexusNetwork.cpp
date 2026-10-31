@@ -1,12 +1,12 @@
-#include "ReactionControlSurface.h"
+#include "NexusNetwork.h"
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
-namespace rms::controlsurface
+namespace nms::network
 {
 	const char* LibraryName()
 	{
-		return "rms_controlsurface";
+		return "nms_network";
 	}
 }
 

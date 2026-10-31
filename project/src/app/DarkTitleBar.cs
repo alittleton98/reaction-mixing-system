@@ -2,7 +2,7 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
 
-namespace ReactionMixingSystem;
+namespace NexusMixingSystem;
 
 /// <summary>
 /// Switches a window's native title bar to the Windows dark theme.

@@ -1,6 +1,6 @@
 //{{NO_DEPENDENCIES}}
 // Microsoft Visual C++ generated include file.
-// Used by reaction-mixing-desk.rc
+// Used by nexus-mixing-desk.rc
 //
 #define IDB_APPICON                       1
 
