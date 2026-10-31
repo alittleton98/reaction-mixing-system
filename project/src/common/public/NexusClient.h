@@ -12,7 +12,7 @@ public:
 	static NexusClient globalClient;
 	static NexusClient* Get() { return &NexusClient::globalClient; };
 public:
-	// Initialize the client
+
 	bool InitializeClient( string ClientScriptPath );
 	bool ShutdownClient();
 	// Load the user's script module that defines how the client behaves and its setup configuration
@@ -36,8 +36,13 @@ private:
 
 MODULE_API_START( NexusClientAPI )
 APPLICATION_API_START
-bool NexusClient_InitializeClient( string ClientScriptPath );
-bool NexusClient_ShutdownClient();
-bool NexusClient_CompileClientScript();
+bool NEXUSCLIENT_API NexusClient_InitializeClient( const char* pathName );
+bool NEXUSCLIENT_API NexusClient_ShutdownClient();
+// Manually recompiles the Client script
+bool NEXUSCLIENT_API NexusClient_CompileClientScript();
+void NEXUSCLIENT_API NexusClient_AttachConsoleOutput();
 APPLICATION_API_END
+SCRIPTING_API_START( NexusClient, "Embedded Python module for the Nexus Client" )
+pythonModule.def( "initialize_client", &NexusClientAPI::NexusClient_InitializeClient, python::arg( "ClientScriptPath" ) );
+SCRIPTING_API_END
 MODULE_API_END

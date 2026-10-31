@@ -45,7 +45,7 @@ add_compile_definitions(ASIO_DEVICE_NAME="VB-Matrix VASIO-512")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
-set(SCRIPT_DIRECTORY "${CMAKE_BINARY_DIR}/script/")
+set(SCRIPT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/script/")
 set(SCRIPT_DEFAULT_NAME "default-nmsconfig")
 set(SCRIPT_FILE_EXTENSION ".nxs")
 
@@ -188,10 +188,14 @@ function(nms_add_library name class)
 	file(GLOB_RECURSE MODULE_SOURCE_FILES
 	"src/${name}/private/*.cpp"
 	)
+	file(GLOB_RECURSE MODULE_HEADER_FILES
+	"src/${name}/private/*.h"
+	)
 	set(sources
 		src/${name}/private/${class}.cpp
 		src/${name}/public/${class}.h
 		${MODULE_SOURCE_FILES}
+		${MODULE_HEADER_FILES}
 		${ARGN}
 		${ASIOSDK_SOURCE} 
 		"${vst3sdk_SOURCE_DIR}/public.sdk/source/vst/hosting/module_win32.cpp"
@@ -218,6 +222,9 @@ function(nms_add_library name class)
 			"${rapidjson_SOURCE_DIR}/include"
 			PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/${name}/private
 		)
+		set_target_properties(${target} PROPERTIES ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}")
+		set_target_properties(${target} PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}")
+		set_target_properties(${target} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
 		target_link_libraries(${target} PRIVATE 
 		pybind11::embed 
 		sdk_hosting
@@ -228,6 +235,7 @@ function(nms_add_library name class)
 		target_compile_features(${target} PUBLIC cxx_std_20)
 		target_compile_definitions(${target} PRIVATE NEXUS_SCRIPT_MODULE_ID=nms_${name})
 		target_compile_definitions(${target} PRIVATE "SCRIPT_OUTPUT_DIRECTORY=R\"(${SCRIPT_DIRECTORY})\"")
+		target_compile_definitions(${target} PRIVATE "DEFAULT_SCRIPT_PATH=R\"(${SCRIPT_DIRECTORY}${SCRIPT_DEFAULT_NAME}${SCRIPT_FILE_EXTENSION})\"")
 		find_program(PYTHON_EXECUTABLE python3)
 		target_compile_definitions(${target} PRIVATE PYTHONDIR=${PYTHON_EXECUTABLE})
 		set_target_properties(${target} PROPERTIES CXX_STANDARD 20)
@@ -290,11 +298,11 @@ if (DOTNET_EXECUTABLE)
   </ItemGroup>
 
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
-    <OutputPath>..\..\out\build\x64-debug\</OutputPath>
+    <OutputPath>..\..\out\build\x64-debug\bin</OutputPath>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
-    <OutputPath>..\..\out\build\x64-release\</OutputPath>
+    <OutputPath>..\..\out\build\x64-release\bin</OutputPath>
   </PropertyGroup>
 
   <!-- Pre-build step (intentionally empty) -->
@@ -331,6 +339,7 @@ add_executable(NexusMixingCLI WIN32 "src/command-line-interface/NexusCLI.cpp" "s
 target_include_directories(NexusMixingCLI PUBLIC
  "${CMAKE_CURRENT_SOURCE_DIR}/src"
 )
+
 
 # Global Definitions
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -392,3 +401,4 @@ else()
 	message(FATAL_ERROR "Unsupported architecture. Chaotic pointer size")
 endif()
 target_compile_definitions(NexusMixingCLI PRIVATE IEEE754_64FLOAT=1)
+

@@ -44,7 +44,7 @@ namespace NexusMixingSystem
         {
             try
             {
-                SetStatus("Sound Engine Init...");
+                SetStatus("");
                 NMS_NativeCode.NexusSoundEngine_InitializeSoundEngine();
             }
             finally

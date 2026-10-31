@@ -15,7 +15,7 @@ bool CompileScripts()
 }
 
 int APIENTRY wWinMain( _In_ HINSTANCE instance, _In_opt_ HINSTANCE /*prevInstance*/,
-	_In_ LPWSTR lpCmdLine, _In_ int nCmdShow )
+					   _In_ LPWSTR lpCmdLine, _In_ int nCmdShow )
 {
 	AllocConsole();
 	SetConsoleTitleW( L"Nexus Mixing System CLI" );
@@ -30,9 +30,8 @@ int APIENTRY wWinMain( _In_ HINSTANCE instance, _In_opt_ HINSTANCE /*prevInstanc
 
 	printf( "Nexus Mixing Desk Command Line Interface \nalittl3ton13\nVersion: %s\n===========================================\n\n", NMS_VERSION_STRING );
 
-
 	string message = "";
-	while ( message != "exit" )
+	while( message != "exit" )
 	{
 		printf( "> " );
 		getline( cin, message );

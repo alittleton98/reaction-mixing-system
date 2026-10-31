@@ -17,11 +17,11 @@
   </ItemGroup>
 
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
-    <OutputPath>..\..\out\build\x64-debug\</OutputPath>
+    <OutputPath>..\..\out\build\x64-debug\bin</OutputPath>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
-    <OutputPath>..\..\out\build\x64-release\</OutputPath>
+    <OutputPath>..\..\out\build\x64-release\bin</OutputPath>
   </PropertyGroup>
 
   <!-- Pre-build step (intentionally empty) -->

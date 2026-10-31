@@ -152,4 +152,19 @@ namespace nexus_util
 		}
 		return typeName;
 	}
+
+	// Returns the file name of a path without its directory or extension, e.g. "C:\dir\script.nxs" -> "script"
+	inline string GetFileNameWithoutExtension( const string& path )
+	{
+		size_t nameStart = path.find_last_of( "/\\" );
+		string fileName = ( nameStart == string::npos ) ? path : path.substr( nameStart + 1 );
+
+		// A leading '.' (e.g. ".config") is part of the name, not an extension
+		size_t extensionStart = fileName.find_last_of( '.' );
+		if( extensionStart != string::npos && extensionStart > 0 )
+		{
+			fileName.erase( extensionStart );
+		}
+		return fileName;
+	}
 }
