@@ -20,34 +20,12 @@ public:
 	bool ShutdownScriptModule() override;
 	// compile the for the client
 	bool CompileClientScript();
-	bool InitializeInterpreter();
-	bool FinalizeInterpreter();
 	bool IsInitialized() const
 	{
 		return m_bInitialized;
 	}
 
-	void CallScriptFunction( string FunctionName )
-	{
-		START_PYTHON
-			if( !python::hasattr( m_UserPythonModule, FunctionName.c_str() ) )
-			{
-				WARNING_LOG( format( "Failed to run function %s in Client script module", FunctionName.c_str() ).c_str() );
-
-			}
-		python::object result = m_SelfPythonModule.attr( FunctionName.c_str() )( );
-		if( result.is_none() )
-		{
-			WARNING_LOG( "Module did not return a returnable object/value" );
-		}
-		else if( !result.cast<bool>() )
-		{
-			WARNING_LOG( format( "%s in Client script module returned false", FunctionName.c_str() ).c_str() );
-		}
-
-		PEEK_PYTHON_LOG;
-		END_PYTHON;
-	}
+	void CallScriptFunction( string FunctionName );
 private:
 	bool m_bInitialized = false;
 	bool m_bInterpreterInitialized = false;

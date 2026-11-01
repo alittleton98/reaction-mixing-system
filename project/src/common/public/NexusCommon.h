@@ -27,7 +27,7 @@ namespace python = pybind11;
 #define FINALIZE_PYTHON_INTERPRETER python::finalize_interpreter()
 #define START_PYTHON if (!Py_IsInitialized()) { ERROR_LOG("Python script section trying to execute without an interpreter running"); } else { optional<python::scoped_interpreter> guard; python::gil_scoped_acquire gInterpreterLock; 
 #define END_PYTHON }
-#define PEEK_PYTHON_LOG try {python::object pyStdout = python::module_::import("sys").attr("stdout"); if (!pyStdout.is_none()) pyStdout.attr("flush")();}catch(exception& exception){fprintf(stderr, "> Python log flush failed: %s\n", exception.what());ERROR_LOG("Error occurred while flushing Python log");}
+#define PEEK_PYTHON_LOG try {python::object pyStdout = python::module_::import("sys").attr("stdout"); if (!pyStdout.is_none())pyStdout.attr("flush")();}catch(exception& exception){fprintf(stderr, "> Python log flush failed: %s\n", exception.what());ERROR_LOG("Error occurred while flushing Python log");}
 #define SCRIPT_SANITY_CHECK "OnSanityCheck"
 #define MODULE_API_START(name) namespace name {
 #define MODULE_API_END }

@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <iostream>
 
+
 NexusClient NexusClient::globalClient;
 
 // Initialize the client
@@ -90,9 +91,7 @@ bool NexusClient::InitializeScriptModule()
 		python::object loader = machinery.attr( "SourceFileLoader" )( adjustedModuleName, m_ClientScriptPath );
 		python::object spec = util.attr( "spec_from_loader" )( adjustedModuleName, loader );
 		m_SelfPythonModule = util.attr( "module_from_spec" )( spec );
-		m_UserPythonModule = util.attr( "module_from_spec" )( spec );
 		loader.attr( "exec_module" )( m_SelfPythonModule );
-		loader.attr( "exec_module" )( m_UserPythonModule );
 	}
 	catch( exception& exception )
 	{
@@ -102,7 +101,7 @@ bool NexusClient::InitializeScriptModule()
 
 	try
 	{
-		if( !python::hasattr( m_UserPythonModule, SCRIPT_SANITY_CHECK ) )
+		if( !python::hasattr( m_SelfPythonModule, SCRIPT_SANITY_CHECK ) )
 		{
 			ERROR_LOG( "Client script module does not have the required OnSanityCheck function" );
 			return false;
@@ -135,17 +134,81 @@ bool NexusClient::ShutdownScriptModule()
 // compile the for the client
 bool NexusClient::CompileClientScript()
 {
+	if( m_ClientScriptPath.length() < 1 )
+	{
+		ERROR_LOG( "No Client script provided. This should at least be the default path" );
+		return false;
+	}
 
+	START_PYTHON;
+	python::module_ machinery;
+	python::module_ util;
+	python::module_ sys;
+	try
+	{
+		machinery = python::module_::import( "importlib.machinery" );
+		util = python::module_::import( "importlib.util" );
+		sys = python::module_::import( "sys" );
+	}
+	catch( exception& exception )
+	{
+		ERROR_LOG( "Failed to load import python modules. Cannot Initialize Script module for Client" );
+		return false;
+	}
+
+	if( machinery.is_none() || util.is_none() || sys.is_none() )
+	{
+		ERROR_LOG( "Failed to load import python modules. Cannot Initialize Script module for Client" );
+		return false;
+	}
+	string moduleName = nexus_util::GetFileNameWithoutExtension( m_ClientScriptPath );
+	string adjusted = nexus_util::to_lower( moduleName );
+	const char* adjustedModuleName = adjusted.c_str();
+
+	try
+	{
+
+		python::object loader = machinery.attr( "SourceFileLoader" )( adjustedModuleName, m_ClientScriptPath );
+		python::object spec = util.attr( "spec_from_loader" )( adjustedModuleName, loader );
+		m_SelfPythonModule = util.attr( "module_from_spec" )( spec );
+		loader.attr( "exec_module" )( m_SelfPythonModule );
+	}
+	catch( exception& exception )
+	{
+		ERROR_LOG( exception.what() );
+		return false;
+	}
 
 	return true;
 }
-bool NexusClient::InitializeInterpreter()
-{
-	return true;
 }
-bool NexusClient::FinalizeInterpreter()
+
+void NexusClient::CallScriptFunction( string FunctionName )
 {
-	return true;
+	START_PYTHON;
+	CompileClientScript();
+	if( !python::hasattr( m_SelfPythonModule, FunctionName.c_str() ) )
+	{
+		WARNING_LOG( format( "Failed to run function {}() in Client script module", FunctionName.c_str() ).c_str() );
+	}
+	try
+	{
+		python::object result = m_SelfPythonModule.attr( FunctionName.c_str() )( );
+		if( result.is_none() )
+		{
+			WARNING_LOG( "Module did not return a returnable object/value" );
+		}
+		else if( !result.cast<bool>() )
+		{
+			WARNING_LOG( format( "{} in Client script module returned false", FunctionName.c_str() ).c_str() );
+		}
+	}
+	catch( exception& exception )
+	{
+		WARNING_LOG( format( "Exception calling function {}() in Client script module:{}", FunctionName.c_str(), exception.what() ).c_str() );
+	}
+	//PEEK_PYTHON_LOG;
+	END_PYTHON;
 }
 
 APPLICATION_API_START

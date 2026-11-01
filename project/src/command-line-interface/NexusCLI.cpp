@@ -30,8 +30,9 @@ int APIENTRY wWinMain( _In_ HINSTANCE instance, _In_opt_ HINSTANCE /*prevInstanc
 	int argc = __argc;
 	wchar_t** argv = __wargv;   // includes the program path as argv[0]
 
-	WARNING_LOG( "Nexus Mixing Desk Command Line Interface \nalittl3ton13\nVersion: %s\n===========================================\n\n", NMS_VERSION_STRING );
+	printf( "Nexus Mixing Desk Command Line Interface \nalittl3ton13\nVersion: %s\n===========================================\n", NMS_VERSION_STRING );
 
+	// Init client
 	NexusClient* client = NexusClient::Get();
 	if( !client )
 	{
@@ -43,6 +44,21 @@ int APIENTRY wWinMain( _In_ HINSTANCE instance, _In_opt_ HINSTANCE /*prevInstanc
 		WARNING_LOG( "Failed to initialize NexusClient\n" );
 	}
 
+
+	// Init other modules
+	NexusSoundEngine* soundEngine = NexusSoundEngine::Get();
+	if( !soundEngine )
+	{
+		ERROR_LOG( "Failed to get NexusSoundEngine instance\nRequired for client initialization" );
+		return -1;
+	}
+	if( !soundEngine->LoadScriptModule<NexusSoundEngine>( soundEngine ) )
+	{
+		ERROR_LOG( "Failed to Load SoundEngine scripting Module NexusSoundEngine\nRequired for client initialization" );
+		return -1;
+	}
+
+	// Init client script module. This must happen last because the script module relies on the others
 	if( !client->InitializeScriptModule() )
 	{
 		WARNING_LOG( "Failed to initialize Client script module\n" );
