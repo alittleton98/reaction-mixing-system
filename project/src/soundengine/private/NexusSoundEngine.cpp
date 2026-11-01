@@ -34,7 +34,14 @@ bool NexusSoundEngine::InitializeSoundEngine()
 	return true;
 }
 bool NexusSoundEngine::InitializeScriptModule()
-{ return true; }
+{
+	LoadScriptModule<NexusSoundEngine>( this );
+	if( !NexusScriptModule::GeneratePythonEnvironmentModule<NexusSoundEngine>( this ) )
+	{
+		return false;
+	}
+	return true;
+}
 
 bool NexusSoundEngine::ShutdownSoundEngine()
 {
@@ -538,3 +545,10 @@ void NEXUSSOUNDENGINE_API NexusSoundEngine_SetMeterPlugin( string PluginPath )
 	soundEngine->MeterVSTPath = PluginPath;
 }
 APPLICATION_API_END
+SCRIPTING_API_START( nexussoundengine, "API for the SoundEngine module of the Nexus Mixing System" )
+pythonModule.def( "initialize_sound_engine", &NexusSoundEngineAPI::NexusSoundEngine_InitializeSoundEngine );
+pythonModule.def( "finalize_sound_engine", &NexusSoundEngineAPI::NexusSoundEngine_FinalizeSoundEngine );
+pythonModule.def( "set_channel_strip_plugin", &NexusSoundEngineAPI::NexusSoundEngine_SetChannelStripPlugin );
+pythonModule.def( "set_mastering_plugin", &NexusSoundEngineAPI::NexusSoundEngine_SetMasteringPlugin );
+pythonModule.def( "set_meter_plugin", &NexusSoundEngineAPI::NexusSoundEngine_SetMeterPlugin );
+SCRIPTING_API_END

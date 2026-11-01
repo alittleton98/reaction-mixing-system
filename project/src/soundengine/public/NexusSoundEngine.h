@@ -74,7 +74,7 @@ namespace ChannelStripColors
 	const int64_t Default_Purple = 0xFF8E29CC;
 }
 
-class NexusSoundEngine : public Vst::IHostApplication, NexusScriptModule
+class NexusSoundEngine : public Vst::IHostApplication, public NexusScriptModule
 {
 public:
 	NexusSoundEngine();
@@ -173,6 +173,4 @@ void NEXUSSOUNDENGINE_API NexusSoundEngine_SetChannelStripPlugin( string PluginP
 void NEXUSSOUNDENGINE_API NexusSoundEngine_SetMasteringPlugin( string PluginPath );
 void NEXUSSOUNDENGINE_API NexusSoundEngine_SetMeterPlugin( string PluginPath );
 APPLICATION_API_END;
-SCRIPTING_API_START( NexusSoundEngineAPI, "API for the SoundEngine module of the Nexus Mixing System" )
-SCRIPTING_API_END
 MODULE_API_END;

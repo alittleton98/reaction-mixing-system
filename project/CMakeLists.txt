@@ -234,7 +234,7 @@ function(nms_add_library name class)
 		)
 		target_compile_features(${target} PUBLIC cxx_std_20)
 		target_compile_definitions(${target} PRIVATE NEXUS_SCRIPT_MODULE_ID=nms_${name})
-		target_compile_definitions(${target} PRIVATE "SCRIPT_OUTPUT_DIRECTORY=R\"(${SCRIPT_DIRECTORY})\"")
+		target_compile_definitions(${target} PUBLIC "SCRIPT_OUTPUT_DIRECTORY=R\"(${SCRIPT_DIRECTORY})\"")
 		target_compile_definitions(${target} PRIVATE "DEFAULT_SCRIPT_PATH=R\"(${SCRIPT_DIRECTORY}${SCRIPT_DEFAULT_NAME}${SCRIPT_FILE_EXTENSION})\"")
 		find_program(PYTHON_EXECUTABLE python3)
 		target_compile_definitions(${target} PRIVATE PYTHONDIR=${PYTHON_EXECUTABLE})
@@ -254,7 +254,9 @@ endfunction()
 nms_add_library(soundengine NexusSoundEngine)
 nms_add_library(controlsurface NexusControlSurface)
 nms_add_library(network NexusNetwork)
-nms_add_library(common NexusCommon src/common/private/NexusServer.cpp src/common/public/NexusServer.h)
+nms_add_library(common NexusCommon )
+
+target_link_libraries(nms_soundengine_static PRIVATE nms_common_static)
 
 # C# WPF APPLICATION
 # The WPF project is scaffolded once (when src/app has no App.xaml); the csproj is

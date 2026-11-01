@@ -24,6 +24,24 @@ bool NexusClient::InitializeClient( string ClientScriptPath )
 	}
 	m_ClientScriptPath = ClientScriptPath;
 	python::initialize_interpreter();
+	// A GUI-subsystem executable has no std handles when Python starts, so sys.stdout/stderr come up as None.
+	// Point them at the console so print() and flush() work.
+	try
+	{
+		python::module_ pySys = python::module_::import( "sys" );
+		python::module_ pyBuiltins = python::module_::import( "builtins" );
+		for( const char* streamName : { "stdout", "stderr" } )
+		{
+			if( pySys.attr( streamName ).is_none() )
+			{
+				pySys.attr( streamName ) = pyBuiltins.attr( "open" )( "CONOUT$", "w", python::arg( "buffering" ) = 1, python::arg( "encoding" ) = "utf-8" );
+			}
+		}
+	}
+	catch( exception& e )
+	{
+		fprintf( stderr, "> Failed to attach Python stdout/stderr to the console: %s\n", e.what() );
+	}
 	return true;
 }
 bool NexusClient::ShutdownClient()
@@ -42,16 +60,14 @@ bool NexusClient::InitializeScriptModule()
 	}
 
 	START_PYTHON;
-	if( !PyGILState_Check() )
-		PyGILState_Ensure();
 	python::module_ machinery;
 	python::module_ util;
 	python::module_ sys;
 	try
 	{
-		python::module_ machinery = python::module_::import( "importlib.machinery" );
-		python::module_ util = python::module_::import( "importlib.util" );
-		python::module_ sys = python::module_::import( "sys" );
+		machinery = python::module_::import( "importlib.machinery" );
+		util = python::module_::import( "importlib.util" );
+		sys = python::module_::import( "sys" );
 	}
 	catch( exception& exception )
 	{
@@ -59,7 +75,7 @@ bool NexusClient::InitializeScriptModule()
 		return false;
 	}
 
-	if( machinery == python::none() || util == python::none() || sys == python::none() )
+	if( machinery.is_none() || util.is_none() || sys.is_none() )
 	{
 		ERROR_LOG( "Failed to load import python modules. Cannot Initialize Script module for Client" );
 		return false;
@@ -73,14 +89,42 @@ bool NexusClient::InitializeScriptModule()
 
 		python::object loader = machinery.attr( "SourceFileLoader" )( adjustedModuleName, m_ClientScriptPath );
 		python::object spec = util.attr( "spec_from_loader" )( adjustedModuleName, loader );
-		m_ClientModule = util.attr( "module_from_spec" )( spec );
+		m_SelfPythonModule = util.attr( "module_from_spec" )( spec );
+		m_UserPythonModule = util.attr( "module_from_spec" )( spec );
+		loader.attr( "exec_module" )( m_SelfPythonModule );
+		loader.attr( "exec_module" )( m_UserPythonModule );
 	}
 	catch( exception& exception )
 	{
-		ERROR_LOG( "Failed to load import python modules. Cannot Initialize Script module for Client" );
+		ERROR_LOG( exception.what() );
 		return false;
 	}
 
+	try
+	{
+		if( !python::hasattr( m_UserPythonModule, SCRIPT_SANITY_CHECK ) )
+		{
+			ERROR_LOG( "Client script module does not have the required OnSanityCheck function" );
+			return false;
+		}
+		python::object result = m_SelfPythonModule.attr( SCRIPT_SANITY_CHECK )( );
+		if( result.is_none() )
+		{
+			ERROR_LOG( "Failed to run sanity check for Client script module" );
+			return false;
+		}
+		else if( !result.cast<bool>() )
+		{
+			WARNING_LOG( "Sanity check for Client script module returned false" );
+			return false;
+		}
+	}
+	catch( exception& exception )
+	{
+		ERROR_LOG( "Exception calling the OnSanityCheck function in the Client script module" );
+		return false;
+	}
+	PEEK_PYTHON_LOG;
 	END_PYTHON;
 	return true;
 }
@@ -154,3 +198,6 @@ void NEXUSCLIENT_API NexusClient_AttachConsoleOutput()
 	std::cerr.clear();
 }
 APPLICATION_API_END
+SCRIPTING_API_START( nexusclient, "Embedded Python module for the Nexus Client" )
+pythonModule.def( "initialize_client", &NexusClientAPI::NexusClient_InitializeClient, python::arg( "ClientScriptPath" ) );
+SCRIPTING_API_END
