@@ -1,4 +1,4 @@
-#include "common/public/NexusServer.h"
+#include "NexusServer.h"
 
 PYBIND11_EMBEDDED_MODULE( nms_server, pyModule )
 {}
@@ -67,7 +67,7 @@ bool NexusServer::LoadUserScriptModule( const char* scriptName )
 	{
 		scriptModule = python::module_::import( scriptName );
 	}
-	catch ( exception& e )
+	catch ( std::exception& e )
 	{
 		std::cerr << "Error importing module '" << scriptName << "': " << e.what() << std::endl;
 		return false;
@@ -78,7 +78,7 @@ bool NexusServer::LoadUserScriptModule( const char* scriptName )
 		python::object result = scriptModule.attr( "OnScriptModuleLoaded" )( );
 		bIsLoaded = result.cast<bool>();
 	}
-	catch ( exception& e )
+	catch ( std::exception& e )
 	{
 		std::cerr << "Error calling OnScriptModuleLoaded in '" << scriptName << "': " << e.what() << std::endl;
 		return false;

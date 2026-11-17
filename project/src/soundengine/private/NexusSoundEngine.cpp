@@ -1,9 +1,13 @@
-#define WIN32_LEAN_AND_MEAN
-
 #include "NexusSoundEngine.h"
+#include "common/public/NexusCore.h"
+
+#if NEXUS_PLATFORM_WINDOWS
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#endif
 
 NexusSoundEngine NexusSoundEngine::globalSoundEngine;
+#if NEXUS_PLATFORM_WINDOWS
 BOOL APIENTRY DllMain( HMODULE /*module*/, DWORD reason, LPVOID /*reserved*/ )
 {
 	NexusSoundEngine* soundEngine = NexusSoundEngine::Get();
@@ -22,17 +26,29 @@ BOOL APIENTRY DllMain( HMODULE /*module*/, DWORD reason, LPVOID /*reserved*/ )
 	}
 	return TRUE;
 }
+#endif // NEXUS_PLATFORM_WINDOWS
 
 NexusSoundEngine::NexusSoundEngine()
 {}
 
 bool NexusSoundEngine::InitializeSoundEngine()
 {
+	NexusCore* core = NexusCore::Get();
+	if( !core )
+	{
+		return false;
+	}
+	python::module_ userScriptModule = core->m_UserPythonModule;
+
+	SCRIPT_EVENT( "initialize_sound_engine", userScriptModule );
+	SCRIPT_EVENT_RET_VALUE( std::string, "set_channel_strip_plugin", userScriptModule );
+
 	if( !InitializeASIODevice() )
 		return false;
 
 	return true;
 }
+
 bool NexusSoundEngine::InitializeScriptModule()
 {
 	LoadScriptModule<NexusSoundEngine>( this );
@@ -47,8 +63,12 @@ bool NexusSoundEngine::ShutdownSoundEngine()
 {
 	return true;
 }
+
 bool NexusSoundEngine::ShutdownScriptModule()
-{ return true; }
+{
+	return true;
+}
+
 tresult PLUGIN_API NexusSoundEngine::getName( Vst::String128 name )
 {
 	return Vst::StringConvert::convert( "Nexus Mixing Desk", name ) ? kResultTrue : kInternalError;
@@ -97,6 +117,15 @@ uint32 PLUGIN_API NexusSoundEngine::release()
 	return 1;
 }
 
+#if !NEXUS_WITH_ASIO
+bool NexusSoundEngine::InitializeASIODevice()
+{
+	// ASIO is Windows only. The sound engine module still loads but has no hardware I/O on this platform
+	bAsioDeviceInitialized = false;
+	WARNING_LOG( "ASIO is not available on this platform. Audio device I/O is disabled" );
+	return false;
+}
+#else
 bool NexusSoundEngine::InitializeASIODevice()
 {
 	bAsioDeviceInitialized = false;
@@ -210,8 +239,8 @@ void NexusSoundEngineCallbacks::OnBufferSwitch( long doubleBufferIndex, ASIOBool
 	if( !soundEngine )
 		return;
 
-	//if( AK::SoundEngine::IsInitialized() )
-	//	AK::SoundEngine::RenderAudio();
+	if( AK::SoundEngine::IsInitialized() )
+		AK::SoundEngine::RenderAudio();
 
 	long channelCount = ASIO_DEVICE_DEFAULT_CHANNELS;
 	for( int indexChannel = 0; indexChannel < channelCount; indexChannel++ )
@@ -223,6 +252,9 @@ void NexusSoundEngineCallbacks::OnBufferSwitch( long doubleBufferIndex, ASIOBool
 
 		size_t bytesPerSample = GetBytesPerSample( soundEngine->mChannelInfos[ indexChannel ].type );
 		size_t bytesPerBuffer = bytesPerSample * soundEngine->mAsioBufferPreferredSize;
+
+
+
 
 		memcpy( inputBuffer, outputBuffer, bytesPerBuffer );
 	}
@@ -442,6 +474,8 @@ ASIOError NexusSoundEngine::CreateAsioBuffers()
 	return result;
 }
 
+#endif // NEXUS_WITH_ASIO
+
 bool NexusSoundEngine::LoadSignalChainPlugins()
 {
 	bSignalChainInitialized = false;
@@ -450,7 +484,7 @@ bool NexusSoundEngine::LoadSignalChainPlugins()
 	if( !bAsioDeviceInitialized )
 		return bSignalChainInitialized;
 
-	string error;
+	std::string error;
 	if( ChannelStripVSTPath.length() > 0 )
 	{
 		vstModule_ChannelStrip = VST3::Hosting::Module::create( ChannelStripVSTPath, error );
@@ -503,7 +537,7 @@ bool NEXUSSOUNDENGINE_API NexusSoundEngine_InitializeSoundEngine()
 	}
 	DISPLAY_LOG( "Initializing Sound Engine" );
 	bool success = true; //soundEngine->InitializeSoundEngine();
-	std::this_thread::sleep_for( chrono::milliseconds( 3000 ) );
+	std::this_thread::sleep_for( std::chrono::milliseconds( 3000 ) );
 	return success;
 }
 bool NEXUSSOUNDENGINE_API NexusSoundEngine_FinalizeSoundEngine()
@@ -517,7 +551,7 @@ bool NEXUSSOUNDENGINE_API NexusSoundEngine_FinalizeSoundEngine()
 	bool success = true; //soundEngine->ShutdownSoundEngine();
 	return success;
 }
-void NEXUSSOUNDENGINE_API NexusSoundEngine_SetChannelStripPlugin( string PluginPath )
+void NEXUSSOUNDENGINE_API NexusSoundEngine_SetChannelStripPlugin( std::string PluginPath )
 {
 	NexusSoundEngine* soundEngine = NexusSoundEngine::Get();
 	if( !soundEngine )
@@ -526,7 +560,7 @@ void NEXUSSOUNDENGINE_API NexusSoundEngine_SetChannelStripPlugin( string PluginP
 	}
 	soundEngine->ChannelStripVSTPath = PluginPath;
 }
-void NEXUSSOUNDENGINE_API NexusSoundEngine_SetMasteringPlugin( string PluginPath )
+void NEXUSSOUNDENGINE_API NexusSoundEngine_SetMasteringPlugin( std::string PluginPath )
 {
 	NexusSoundEngine* soundEngine = NexusSoundEngine::Get();
 	if( !soundEngine )
@@ -535,7 +569,7 @@ void NEXUSSOUNDENGINE_API NexusSoundEngine_SetMasteringPlugin( string PluginPath
 	}
 	soundEngine->MasteringVSTPath = PluginPath;
 }
-void NEXUSSOUNDENGINE_API NexusSoundEngine_SetMeterPlugin( string PluginPath )
+void NEXUSSOUNDENGINE_API NexusSoundEngine_SetMeterPlugin( std::string PluginPath )
 {
 	NexusSoundEngine* soundEngine = NexusSoundEngine::Get();
 	if( !soundEngine )

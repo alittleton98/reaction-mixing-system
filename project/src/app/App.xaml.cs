@@ -31,22 +31,22 @@ public partial class App : Application
         
     }
 
-    private async Task InitializeClient()
+    private async Task InitializeCore()
     {
         if (splash == null)
         {
             return;
         }
-        splash.SetStatus("Client Init...");
-        bool success = await Task.Run(() => NMS_NativeCode.NexusClient_InitializeClient(""));
+        splash.SetStatus("Core Init...");
+        bool success = await Task.Run(() => NMS_NativeCode.NexusCore_InitializeCore(""));
         if (success)
         {
-            splash.SetStatus("Client Loaded!");
+            splash.SetStatus("Core Loaded!");
         }
         else
         {
-            splash.SetStatus("FAILED TO INITIALIZE CLIENT");
-            NMS_Utilities.DisplayLog("FAILED TO INITIALIZE CLIENT");
+            splash.SetStatus("FAILED TO INITIALIZE CORE");
+            NMS_Utilities.DisplayLog("FAILED TO INITIALIZE CORE");
             await Task.Delay(500);
             splash.SetStatus("Closing...");
             NMS_Utilities.DisplayLog("Closing...");
@@ -121,11 +121,11 @@ public partial class App : Application
             }
         }
         Console.WriteLine("===========================================");
-        NMS_NativeCode.NexusClient_AttachConsoleOutput();
+        NMS_NativeCode.NexusCore_AttachConsoleOutput();
 #endif
-        splash.SetStatus("Client Initialization");
+        splash.SetStatus("Core Initialization");
 
-        await InitializeClient();
+        await InitializeCore();
         
         if (e.Args.Length > 0)
         {

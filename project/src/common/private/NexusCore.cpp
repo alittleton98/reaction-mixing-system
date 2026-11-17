@@ -1,30 +1,31 @@
-#include "NexusClient.h"
+#include "NexusCore.h"
 #include <filesystem>
 #include <cstdio>
 #include <iostream>
 
 
-NexusClient NexusClient::globalClient;
+NexusCore NexusCore::globalCore;
 
-// Initialize the client
-bool NexusClient::InitializeClient( string ClientScriptPath )
+// Initialize the core
+bool NexusCore::InitializeCore( std::string CoreScriptPath )
 {
-	if( !filesystem::exists( ClientScriptPath ) )
+	if( !std::filesystem::exists( CoreScriptPath ) )
 	{
-		WARNING_LOG( "No user client script provided. Loading default" );
+		WARNING_LOG( "No user core script provided. Loading default" );
 
-		if( !filesystem::exists( DEFAULT_SCRIPT_PATH ) )
+		if( !std::filesystem::exists( DEFAULT_SCRIPT_PATH ) )
 		{
 			ERROR_LOG( "No default script available. Cannot initialize" );
 			return false;
 		}
 		else
 		{
-			ClientScriptPath = DEFAULT_SCRIPT_PATH;
+			CoreScriptPath = DEFAULT_SCRIPT_PATH;
 		}
 	}
-	m_ClientScriptPath = ClientScriptPath;
+	m_CoreScriptPath = CoreScriptPath;
 	python::initialize_interpreter();
+#if NEXUS_PLATFORM_WINDOWS
 	// A GUI-subsystem executable has no std handles when Python starts, so sys.stdout/stderr come up as None.
 	// Point them at the console so print() and flush() work.
 	try
@@ -39,24 +40,25 @@ bool NexusClient::InitializeClient( string ClientScriptPath )
 			}
 		}
 	}
-	catch( exception& e )
+	catch( std::exception& e )
 	{
 		fprintf( stderr, "> Failed to attach Python stdout/stderr to the console: %s\n", e.what() );
 	}
+#endif // NEXUS_PLATFORM_WINDOWS
 	return true;
 }
-bool NexusClient::ShutdownClient()
+bool NexusCore::ShutdownCore()
 {
 	python::finalize_interpreter();
 
 	return true;
 }
-// Load the user's script module that defines how the client behaves and its setup configuration
-bool NexusClient::InitializeScriptModule()
+// Load the user's script module that defines how the core behaves and its setup configuration
+bool NexusCore::InitializeScriptModule()
 {
-	if( m_ClientScriptPath.length() < 1 )
+	if( m_CoreScriptPath.length() < 1 )
 	{
-		ERROR_LOG( "No Client script provided. This should at least be the default path" );
+		ERROR_LOG( "No Core script provided. This should at least be the default path" );
 		return false;
 	}
 
@@ -70,30 +72,30 @@ bool NexusClient::InitializeScriptModule()
 		util = python::module_::import( "importlib.util" );
 		sys = python::module_::import( "sys" );
 	}
-	catch( exception& exception )
+	catch( std::exception& exception )
 	{
-		ERROR_LOG( "Failed to load import python modules. Cannot Initialize Script module for Client" );
+		ERROR_LOG( "Failed to load import python modules. Cannot Initialize Script module for Core" );
 		return false;
 	}
 
 	if( machinery.is_none() || util.is_none() || sys.is_none() )
 	{
-		ERROR_LOG( "Failed to load import python modules. Cannot Initialize Script module for Client" );
+		ERROR_LOG( "Failed to load import python modules. Cannot Initialize Script module for Core" );
 		return false;
 	}
-	string moduleName = nexus_util::GetFileNameWithoutExtension( m_ClientScriptPath );
-	string adjusted = nexus_util::to_lower( moduleName );
+	std::string moduleName = nexus_util::GetFileNameWithoutExtension( m_CoreScriptPath );
+	std::string adjusted = nexus_util::to_lower( moduleName );
 	const char* adjustedModuleName = adjusted.c_str();
 
 	try
 	{
 
-		python::object loader = machinery.attr( "SourceFileLoader" )( adjustedModuleName, m_ClientScriptPath );
+		python::object loader = machinery.attr( "SourceFileLoader" )( adjustedModuleName, m_CoreScriptPath );
 		python::object spec = util.attr( "spec_from_loader" )( adjustedModuleName, loader );
 		m_SelfPythonModule = util.attr( "module_from_spec" )( spec );
 		loader.attr( "exec_module" )( m_SelfPythonModule );
 	}
-	catch( exception& exception )
+	catch( std::exception& exception )
 	{
 		ERROR_LOG( exception.what() );
 		return false;
@@ -103,40 +105,40 @@ bool NexusClient::InitializeScriptModule()
 	{
 		if( !python::hasattr( m_SelfPythonModule, SCRIPT_SANITY_CHECK ) )
 		{
-			ERROR_LOG( "Client script module does not have the required OnSanityCheck function" );
+			ERROR_LOG( "Core script module does not have the required OnSanityCheck function" );
 			return false;
 		}
 		python::object result = m_SelfPythonModule.attr( SCRIPT_SANITY_CHECK )( );
 		if( result.is_none() )
 		{
-			ERROR_LOG( "Failed to run sanity check for Client script module" );
+			ERROR_LOG( "Failed to run sanity check for Core script module" );
 			return false;
 		}
 		else if( !result.cast<bool>() )
 		{
-			WARNING_LOG( "Sanity check for Client script module returned false" );
+			WARNING_LOG( "Sanity check for Core script module returned false" );
 			return false;
 		}
 	}
-	catch( exception& exception )
+	catch( std::exception& exception )
 	{
-		ERROR_LOG( "Exception calling the OnSanityCheck function in the Client script module" );
+		ERROR_LOG( "Exception calling the OnSanityCheck function in the Core script module" );
 		return false;
 	}
 	PEEK_PYTHON_LOG;
 	END_PYTHON;
 	return true;
 }
-bool NexusClient::ShutdownScriptModule()
+bool NexusCore::ShutdownScriptModule()
 {
 	return true;
 }
-// compile the for the client
-bool NexusClient::CompileClientScript()
+// compile the for the core
+bool NexusCore::CompileCoreScript()
 {
-	if( m_ClientScriptPath.length() < 1 )
+	if( m_CoreScriptPath.length() < 1 )
 	{
-		ERROR_LOG( "No Client script provided. This should at least be the default path" );
+		ERROR_LOG( "No Core script provided. This should at least be the default path" );
 		return false;
 	}
 
@@ -150,46 +152,47 @@ bool NexusClient::CompileClientScript()
 		util = python::module_::import( "importlib.util" );
 		sys = python::module_::import( "sys" );
 	}
-	catch( exception& exception )
+	catch( std::exception& exception )
 	{
-		ERROR_LOG( "Failed to load import python modules. Cannot Initialize Script module for Client" );
+		ERROR_LOG( "Failed to load import python modules. Cannot Initialize Script module for Core" );
 		return false;
 	}
 
 	if( machinery.is_none() || util.is_none() || sys.is_none() )
 	{
-		ERROR_LOG( "Failed to load import python modules. Cannot Initialize Script module for Client" );
+		ERROR_LOG( "Failed to load import python modules. Cannot Initialize Script module for Core" );
 		return false;
 	}
-	string moduleName = nexus_util::GetFileNameWithoutExtension( m_ClientScriptPath );
-	string adjusted = nexus_util::to_lower( moduleName );
+	std::string moduleName = nexus_util::GetFileNameWithoutExtension( m_CoreScriptPath );
+	std::string adjusted = nexus_util::to_lower( moduleName );
 	const char* adjustedModuleName = adjusted.c_str();
 
 	try
 	{
 
-		python::object loader = machinery.attr( "SourceFileLoader" )( adjustedModuleName, m_ClientScriptPath );
+		python::object loader = machinery.attr( "SourceFileLoader" )( adjustedModuleName, m_CoreScriptPath );
 		python::object spec = util.attr( "spec_from_loader" )( adjustedModuleName, loader );
 		m_SelfPythonModule = util.attr( "module_from_spec" )( spec );
 		loader.attr( "exec_module" )( m_SelfPythonModule );
 	}
-	catch( exception& exception )
+	catch( std::exception& exception )
 	{
 		ERROR_LOG( exception.what() );
 		return false;
 	}
 
 	return true;
-}
+	END_PYTHON
+	return false;
 }
 
-void NexusClient::CallScriptFunction( string FunctionName )
+void NexusCore::CallScriptFunction( std::string FunctionName )
 {
 	START_PYTHON;
-	CompileClientScript();
+	CompileCoreScript();
 	if( !python::hasattr( m_SelfPythonModule, FunctionName.c_str() ) )
 	{
-		WARNING_LOG( format( "Failed to run function {}() in Client script module", FunctionName.c_str() ).c_str() );
+		WARNING_LOG( std::format( "Failed to run function {}() in Core script module", FunctionName.c_str() ).c_str() );
 	}
 	try
 	{
@@ -200,57 +203,59 @@ void NexusClient::CallScriptFunction( string FunctionName )
 		}
 		else if( !result.cast<bool>() )
 		{
-			WARNING_LOG( format( "{} in Client script module returned false", FunctionName.c_str() ).c_str() );
+			WARNING_LOG( std::format( "{} in Core script module returned false", FunctionName.c_str() ).c_str() );
 		}
 	}
-	catch( exception& exception )
+	catch( std::exception& exception )
 	{
-		WARNING_LOG( format( "Exception calling function {}() in Client script module:{}", FunctionName.c_str(), exception.what() ).c_str() );
+		WARNING_LOG( std::format( "Exception calling function {}() in Core script module:{}", FunctionName.c_str(), exception.what() ).c_str() );
 	}
 	//PEEK_PYTHON_LOG;
 	END_PYTHON;
 }
 
 APPLICATION_API_START
-bool NEXUSCLIENT_API NexusClient_InitializeClient( const char* pathName )
+bool NEXUSCORE_API NexusCore_InitializeCore( const char* pathName )
 {
 #if DEBUG_CONFIG
-	DISPLAY_LOG( "Inititializing client" );
+	DISPLAY_LOG( "Inititializing core" );
 #endif
 
-	NexusClient* client = NexusClient::Get();
-	if( !client )
+	NexusCore* core = NexusCore::Get();
+	if( !core )
 	{
-		WARNING_LOG( "NexusClient::Get returned null!" );
+		WARNING_LOG( "NexusCore::Get returned null!" );
 		return false;
 	}
 
-	if( !client->InitializeClient( pathName ) )
+	if( !core->InitializeCore( pathName ) )
 	{
-		WARNING_LOG( "NexusClient failed base initialization" );
+		WARNING_LOG( "NexusCore failed base initialization" );
 		return false;
 	}
 
-	if( !client->InitializeScriptModule() )
+	if( !core->InitializeScriptModule() )
 	{
-		WARNING_LOG( "NexusClient failed to initialize its script module" );
+		WARNING_LOG( "NexusCore failed to initialize its script module" );
 		return false;
 	}
 	return true;
 }
-bool NEXUSCLIENT_API NexusClient_ShutdownClient()
+bool NEXUSCORE_API NexusCore_ShutdownCore()
 {
 	return true;
 }
-bool NEXUSCLIENT_API NexusClient_CompileClientScript()
+bool NEXUSCORE_API NexusCore_CompileCoreScript()
 {
 	return true;
 }
-void NEXUSCLIENT_API NexusClient_AttachConsoleOutput()
+void NEXUSCORE_API NexusCore_AttachConsoleOutput()
 {
+#if NEXUS_PLATFORM_WINDOWS
 	FILE* f;
 	freopen_s( &f, "CONOUT$", "w", stdout );
 	freopen_s( &f, "CONOUT$", "w", stderr );
+#endif
 
 	// Without this, native output can show up late or out of order relative to C# output
 	setvbuf( stdout, nullptr, _IONBF, 0 );
@@ -261,6 +266,6 @@ void NEXUSCLIENT_API NexusClient_AttachConsoleOutput()
 	std::cerr.clear();
 }
 APPLICATION_API_END
-SCRIPTING_API_START( nexusclient, "Embedded Python module for the Nexus Client" )
-pythonModule.def( "initialize_client", &NexusClientAPI::NexusClient_InitializeClient, python::arg( "ClientScriptPath" ) );
+SCRIPTING_API_START( nexuscore, "Embedded Python module for the Nexus Core" )
+pythonModule.def( "initialize_core", &NexusCoreAPI::NexusCore_InitializeCore, python::arg( "CoreScriptPath" ) );
 SCRIPTING_API_END

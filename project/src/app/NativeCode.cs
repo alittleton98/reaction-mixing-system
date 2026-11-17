@@ -23,12 +23,12 @@ internal static partial class NMS_NativeCode
     // Client
     [DllImport("nms_common.dll")]
     [UnmanagedCallConv(CallConvs = new[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
-    public static extern void NexusClient_AttachConsoleOutput();
+    public static extern void NexusCore_AttachConsoleOutput();
 
     [DllImport("nms_common.dll")]
     [UnmanagedCallConv(CallConvs = new[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
     [return: MarshalAs(UnmanagedType.U1)]
-    public static extern bool NexusClient_InitializeClient(string path);
+    public static extern bool NexusCore_InitializeCore(string path);
 
     // Sound Engine
     [DllImport("nms_soundengine")]

@@ -1,6 +1,3 @@
-
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
 #include "NexusCommon.h"
 #include <typeinfo>
 #include <algorithm>
@@ -9,6 +6,9 @@
 #include <filesystem>
 #include <optional>
 
+#if NEXUS_PLATFORM_WINDOWS
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
 
 BOOL APIENTRY DllMain( HMODULE /*module*/, DWORD reason, LPVOID /*reserved*/ )
 {
@@ -22,5 +22,4 @@ BOOL APIENTRY DllMain( HMODULE /*module*/, DWORD reason, LPVOID /*reserved*/ )
 	}
 	return TRUE;
 }
-
-
+#endif // NEXUS_PLATFORM_WINDOWS

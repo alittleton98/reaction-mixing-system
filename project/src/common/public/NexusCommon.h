@@ -25,9 +25,9 @@ namespace python = pybind11;
 
 #define INITIALIZE_PYTHON_INTERPRETER python::initialize_interpreter()
 #define FINALIZE_PYTHON_INTERPRETER python::finalize_interpreter()
-#define START_PYTHON if (!Py_IsInitialized()) { ERROR_LOG("Python script section trying to execute without an interpreter running"); } else { optional<python::scoped_interpreter> guard; python::gil_scoped_acquire gInterpreterLock; 
+#define START_PYTHON if (!Py_IsInitialized()) { ERROR_LOG("Python script section trying to execute without an interpreter running"); } else { std::optional<python::scoped_interpreter> guard; python::gil_scoped_acquire gInterpreterLock; 
 #define END_PYTHON }
-#define PEEK_PYTHON_LOG try {python::object pyStdout = python::module_::import("sys").attr("stdout"); if (!pyStdout.is_none())pyStdout.attr("flush")();}catch(exception& exception){fprintf(stderr, "> Python log flush failed: %s\n", exception.what());ERROR_LOG("Error occurred while flushing Python log");}
+#define PEEK_PYTHON_LOG try {python::object pyStdout = python::module_::import("sys").attr("stdout"); if (!pyStdout.is_none())pyStdout.attr("flush")();}catch( std::exception& exception){fprintf(stderr, "> Python log flush failed: %s\n", exception.what());ERROR_LOG("Error occurred while flushing Python log");}
 #define SCRIPT_SANITY_CHECK "OnSanityCheck"
 #define MODULE_API_START(name) namespace name {
 #define MODULE_API_END }
@@ -36,7 +36,6 @@ namespace python = pybind11;
 #define SCRIPTING_API_START(name, description) PYBIND11_EMBEDDED_MODULE(name, pythonModule){ pythonModule.doc() = description;
 #define SCRIPTING_API_END }
 
-using namespace std;
 class NexusScriptInterpreter;
 
 class NexusScriptModule
@@ -50,15 +49,15 @@ public:
 	template <typename T>
 	bool CanPythonImportModule( T* ScriptModuleObject )
 	{
-		string moduleName = nexus_util::StripTypeKeyword( typeid( *ScriptModuleObject ).name() );
-		string adjusted = nexus_util::to_lower( moduleName );
+		std::string moduleName = nexus_util::StripTypeKeyword( typeid( *ScriptModuleObject ).name() );
+		std::string adjusted = nexus_util::to_lower( moduleName );
 		const char* adjustedModuleName = adjusted.c_str();
 
 		try
 		{
 			python::module_ pModule = python::module_::import( adjustedModuleName );
 		}
-		catch( const exception& e )
+		catch( const std::exception& e )
 		{
 			std::cerr << "Error importing module '" << adjustedModuleName << "': " << e.what() << std::endl;
 			return false;
@@ -83,8 +82,8 @@ public:
 			return false;
 		}
 
-		string moduleName = nexus_util::StripTypeKeyword( typeid( *ScriptModule ).name() );
-		string adjustedModuleName = nexus_util::to_lower( moduleName );
+		std::string moduleName = nexus_util::StripTypeKeyword( typeid( *ScriptModule ).name() );
+		std::string adjustedModuleName = nexus_util::to_lower( moduleName );
 
 		// Where the dummy package is written: <kOutputDir>/<adjustedModuleName>/
 		static const std::string kOutputDir = std::string( SCRIPT_OUTPUT_DIRECTORY ) + adjustedModuleName;
@@ -247,7 +246,7 @@ public:
 					d = python::getattr( obj, "__doc__", python::none() );
 				}
 				if( !python::isinstance<python::str>( d ) || d.attr( "strip" )( ).cast<Str>().empty() ) return std::nullopt;
-				return python::repr( g.inspect.attr( "cleandoc" )( d ) ).cast<Str>();
+				return python::repr( g.inspect.attr( "cleandoc" )( d ) ).template cast<Str>();
 			}
 
 			// Import `qual` from `mod` under a private alias. Guarded imports fall back
@@ -463,12 +462,12 @@ public:
 							out.push_back( ip + k + " = " + g.literal( v ).value_or( "None" ) );
 						}
 					}
-					else if( g.inspect.attr( "isdatadescriptor" )( raw ).cast<bool>() )
+					else if( g.inspect.attr( "isdatadescriptor" )( raw ).template cast<bool>() )
 					{
 						auto p = prop( k, raw, ip );
 						out.insert( out.end(), p.begin(), p.end() );
 					}
-					else if( PyCallable_Check( raw.ptr() ) || g.inspect.attr( "ismethoddescriptor" )( raw ).cast<bool>() )
+					else if( PyCallable_Check( raw.ptr() ) || g.inspect.attr( "ismethoddescriptor" )( raw ).template cast<bool>() )
 					{
 						auto f = func( k, raw, ip, "method" );
 						out.insert( out.end(), f.begin(), f.end() );
@@ -510,7 +509,7 @@ public:
 					if( g.isModule( v ) )
 					{
 						if( std::find( kids.begin(), kids.end(), k ) != kids.end() ) continue;  // imported at the end
-						imports.push_back( "try:\n    import " + v.attr( "__name__" ).cast<Str>() + " as " + k +
+						imports.push_back( "try:\n    import " + v.attr( "__name__" ).template cast<Str>() + " as " + k +
 										   "\nexcept Exception:\n    " + k + " = None" );
 					}
 					else if( Generator::isType( v ) )
@@ -656,15 +655,15 @@ public:
 			return false;
 		}
 
-		string moduleName = nexus_util::StripTypeKeyword( typeid( *ScriptModule ).name() );
-		string adjustedModuleName = nexus_util::to_lower( moduleName );
+		std::string moduleName = nexus_util::StripTypeKeyword( typeid( *ScriptModule ).name() );
+		std::string adjustedModuleName = nexus_util::to_lower( moduleName );
 
 		START_PYTHON;
 		try
 		{
 			if( m_SelfPythonModule == python::none() )
 			{
-				m_SelfPythonModule = python::module_::import( adjustedModuleName );
+				m_SelfPythonModule = python::module_::import( adjustedModuleName.c_str() );
 			}
 			if( m_SelfPythonModule == python::none() )
 			{
@@ -674,7 +673,7 @@ public:
 			python::object result;
 			result = m_SelfPythonModule.attr( SCRIPT_SANITY_CHECK );
 		}
-		catch( exception& exception )
+		catch( std::exception& exception )
 		{
 			std::cerr << "Error generating stubs '" << adjustedModuleName << "': " << exception.what() << std::endl;
 			return false;
@@ -696,7 +695,7 @@ public:
 			isModuleImported = true;
 			return true;
 		}
-		catch( exception& exception )
+		catch( std::exception& exception )
 		{
 			std::cerr << "Error importing user script '" << ModuleName << "': " << exception.what() << std::endl;
 			isModuleImported = false;
@@ -728,7 +727,7 @@ inline python::object RunPythonEvent( const char* EventName, const python::modul
 	{
 		result = ScriptModule.attr( EventName );
 	}
-	catch( exception& exception )
+	catch( std::exception& exception )
 	{
 		std::cerr << "Error running python event '" << EventName << "': " << exception.what() << std::endl;
 	}
@@ -755,7 +754,7 @@ inline T RunPythonEventWithReturnValue( const char* EventName, const python::mod
 		result = ScriptModule.attr( EventName );
 		retValue = result.cast<T>();
 	}
-	catch( exception& exception )
+	catch( std::exception& exception )
 	{
 		std::cerr << "Error running python event '" << EventName << "': " << exception.what() << std::endl;
 	}
@@ -766,14 +765,14 @@ inline T RunPythonEventWithReturnValue( const char* EventName, const python::mod
 
 inline python::object RunStartEventForFunction( const char* FunctionName, const python::module_ UserScriptModule )
 {
-	string eventName = string( "On_" ) + FunctionName + "_Start";
+	std::string eventName = std::string( "On_" ) + FunctionName + "_Start";
 	return RunPythonEvent( eventName.c_str(), UserScriptModule );
 }
 #define SCRIPT_ON_FUNCTION_START(FunctionName, UserScriptModule) RunStartEventForFunction(FunctionName, UserScriptModule)
 
 inline python::object RunEndEventForFunction( const char* FunctionName, const python::module_ UserScriptModule )
 {
-	string eventName = string( "On_" ) + FunctionName + "_End";
+	std::string eventName = std::string( "On_" ) + FunctionName + "_End";
 	return RunPythonEvent( eventName.c_str(), UserScriptModule );
 }
 #define SCRIPT_ON_FUNCTION_END(FunctionName, UserScriptModule) RunEndEventForFunction(FunctionName, UserScriptModule)

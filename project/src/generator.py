@@ -214,8 +214,9 @@ def generate_module_stubs(module_name:str, output_dir:Path) -> bool:
     return True
 
 def main():
-    with open(FORMAT_JSON, "r") as f:
-        fmt = json.load(f)
+    file =  open(FORMAT_JSON, "r")
+    fmt = json.load(file)
+    file.close()
 
     struct_name = to_pascal(to_identifier(fmt["name"].replace("-", "_")))
     version = fmt["version"][0]

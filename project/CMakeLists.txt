@@ -7,6 +7,19 @@ include(FetchContent)
 set(FETCHCONTENT_UPDATES_DISCONNECTED ON)
 
 project ("nexus-mixing-system")
+
+# Platform feature switches. Every module is built and linked on every platform; features a platform
+# cannot support (ASIO, the Win32 shared memory, the WPF app) are compiled out by macro in source
+# (see NEXUS_WITH_* in src/common.h), so the same module list is always produced.
+if (WIN32)
+	set(NMS_WITH_ASIO ON)
+else()
+	set(NMS_WITH_ASIO OFF)
+	if (NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
+		message(FATAL_ERROR "Unsupported platform ${CMAKE_SYSTEM_NAME}. Use Windows or Linux")
+	endif()
+endif()
+add_compile_definitions(NEXUS_WITH_ASIO=$<BOOL:${NMS_WITH_ASIO}>)
 find_package(Git QUIET)
 if(GIT_FOUND)
     execute_process(
@@ -31,15 +44,46 @@ else()
     message(FATAL_ERROR "Git is not found. This should not be the case")
 endif()
 
+if (DEFINED ENV{WWISEVERSION})
+  set (WWISE_SDK_PATH "C:/Program Files/Audiokinetic/Wwise$ENV{WWISEVERSION}/SDK") # Wwise version should fit the format MAJOR.MINOR.PATCH.BUILD. See the AK Launcher for the full version number
+  set (WWISE_INCLUDE_PATH "C:/Program Files/Audiokinetic/Wwise$ENV{WWISEVERSION}/SDK/include") # Wwise version should fit the format MAJOR.MINOR.PATCH.BUILD. See the AK Launcher for the full version number
+  set (WWISE_SAMPLE_PATH "C:/Program Files/Audiokinetic/Wwise$ENV{WWISEVERSION}/SDK/samples") # Wwise version should fit the format MAJOR.MINOR.PATCH.BUILD. See the AK Launcher for the full version number
+  set (WWISE_LIB_PATH_WIN "C:/Program Files/Audiokinetic/Wwise$ENV{WWISEVERSION}/SDK/x64_vc180") # Wwise version should fit the format MAJOR.MINOR.PATCH.BUILD. See the AK Launcher for the full version number
+  set (WWISE_LIB_PATH_LNX "C:/Program Files/Audiokinetic/Wwise$ENV{WWISEVERSION}/SDK/Linux_x64") # Wwise version should fit the format MAJOR.MINOR.PATCH.BUILD. See the AK Launcher for the full version number
+  set (WWISE_LIB_PATH_MAC "C:/Program Files/Audiokinetic/Wwise$ENV{WWISEVERSION}/SDK/Mac_Xcode2700") # Wwise version should fit the format MAJOR.MINOR.PATCH.BUILD. See the AK Launcher for the full version number
+else()
+  message(FATAL_ERROR "Environment variable WWISEVERSION is required")
+endif()
+
+file(GLOB_RECURSE WWISE_INTEGRATION_SOURCES
+    "${WWISE_SDK_PATH}/samples/SoundEngine/Common/*.cpp"
+)
+list(REMOVE_ITEM WWISE_INTEGRATION_SOURCES
+    "${WWISE_SAMPLE_PATH}/SoundEngine/Common/AkPlatformProfilerHookStubs.cpp"
+)
+
+if (WIN32)
+file(GLOB_RECURSE WWISE_PLATFORM_SOURCES
+    "${WWISE_SDK_PATH}/samples/SoundEngine/Win32/*.cpp"  # or Mac, depending on platform
+)
+else()
+file(GLOB_RECURSE WWISE_PLATFORM_SOURCES
+	"${WWISE_SDK_PATH}/samples/SoundEngine/POSIX/*.cpp"  # or Mac, depending on platform
+)
+endif()
+
 set(NMS_MAJOR_NUMBER "0")
 set(NMS_MINOR_NUMBER "1")
 set(NMS_BUILD_NUMBER ${GIT_COMMIT_COUNT})
+
 
 add_compile_definitions(NMS_MAJOR_NUMBER=0)
 add_compile_definitions(NMS_MINOR_NUMBER=1)
 add_compile_definitions(NMS_BUILD_NUMBER=${GIT_COMMIT_COUNT})
 add_compile_definitions(NMS_VERSION_STRING="${NMS_MAJOR_NUMBER}.${NMS_MINOR_NUMBER}.${NMS_BUILD_NUMBER}")
 add_compile_definitions(ASIO_DEVICE_NAME="VB-Matrix VASIO-512")
+add_compile_definitions(WWISE_VERSION="${WWISEVERSION}")
+
 # Build the libraries into the same directory as the C# exe (out/build/<preset>)
 # Set after the FetchContent dependencies so they keep their default locations.
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
@@ -87,6 +131,7 @@ configure_file("${NMS_FILEFORMAT_JSON}" "${CMAKE_CURRENT_SOURCE_DIR}/src/file-fo
 # Mirror the global compile definitions into the C# project. DefineConstants can't carry values,
 # so write them as constants; file(CONFIGURE) only rewrites the file when the content changes.
 set(NMS_APP_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/app")
+if (WIN32)
 file(MAKE_DIRECTORY "${NMS_APP_DIR}")
 string(REPLACE "\\" "\\\\" NMS_CS_ASIO_DEVICE_NAME "$ENV{NMSASIODEVICENAME}")
 string(REPLACE "\"" "\\\"" NMS_CS_ASIO_DEVICE_NAME "${NMS_CS_ASIO_DEVICE_NAME}")
@@ -106,9 +151,10 @@ internal static class BuildDefines
 	public const string ScriptFileExtension = \"${SCRIPT_FILE_EXTENSION}\";
 }
 ")
+endif()
 
 message("")
-find_program(Python3 python REQUIRED)
+find_program(Python3 NAMES python3 python REQUIRED)
 if (Python3)
 	message(STATUS "Python3 found: ${Python3}")
 	execute_process(
@@ -134,20 +180,30 @@ endif()
 
 message("Checking for dependencies...")
 # Dependencies
-FetchContent_Declare( 
-	asio
-	GIT_REPOSITORY	https://github.com/audiosdk/asio.git
-	GIT_TAG			main
-)
-FetchContent_MakeAvailable(asio)
-if (EXISTS "${asio_SOURCE_DIR}/host/sample/hostsample.cpp")
-	file(REMOVE_RECURSE "${asio_SOURCE_DIR}/host/sample/hostsample.cpp")
+# ASIO is Windows only. Elsewhere the SDK is not fetched and NEXUS_WITH_ASIO compiles the code out.
+set(ASIOSDK_SOURCE "")
+set(ASIOSDK_INCLUDE_DIRS "")
+if (NMS_WITH_ASIO)
+	FetchContent_Declare( 
+		asio
+		GIT_REPOSITORY	https://github.com/audiosdk/asio.git
+		GIT_TAG			main
+	)
+	FetchContent_MakeAvailable(asio)
+	if (EXISTS "${asio_SOURCE_DIR}/host/sample/hostsample.cpp")
+		file(REMOVE_RECURSE "${asio_SOURCE_DIR}/host/sample/hostsample.cpp")
+	endif()
+	file(GLOB_RECURSE ASIOSDK_SOURCE
+	"${asio_SOURCE_DIR}/host/*.cpp"
+	"${asio_SOURCE_DIR}/host/pc/*.cpp"
+	"${asio_SOURCE_DIR}/common/asio.cpp"
+	)
+	set(ASIOSDK_INCLUDE_DIRS
+		"${asio_SOURCE_DIR}/common"
+		"${asio_SOURCE_DIR}/host"
+		"${asio_SOURCE_DIR}/host/pc"
+	)
 endif()
-file(GLOB_RECURSE ASIOSDK_SOURCE
-"${asio_SOURCE_DIR}/host/*.cpp"
-"${asio_SOURCE_DIR}/host/pc/*.cpp"
-"${asio_SOURCE_DIR}/common/asio.cpp"
-)
 
 FetchContent_Declare( 
 	rtmidi
@@ -161,10 +217,18 @@ FetchContent_Declare(
 	GIT_REPOSITORY	https://github.com/steinbergmedia/vst3sdk.git
 	GIT_TAG			master
 )
+if (NOT WIN32)
+	# Only the VST3 hosting libraries are used; skip VSTGUI (needs X11/Wayland/Cairo) and the examples
+	set(SMTG_ENABLE_VSTGUI_SUPPORT OFF CACHE BOOL "" FORCE)
+	set(SMTG_ENABLE_VST3_PLUGIN_EXAMPLES OFF CACHE BOOL "" FORCE)
+	set(SMTG_ENABLE_VST3_HOSTING_EXAMPLES OFF CACHE BOOL "" FORCE)
+	set(SMTG_CREATE_PLUGIN_LINK OFF CACHE BOOL "" FORCE)
+endif()
 FetchContent_MakeAvailable(vst3sdk)
 smtg_enable_vst3_sdk()
 
 
+if (WIN32)
 find_file(VB_AUDIO_EXE
     NAMES VBAudioMatrixCoconut_x64.exe
     PATHS "$ENV{${_pf86}}/VB/VBAudioMatrix"
@@ -177,6 +241,15 @@ if(VB_AUDIO_EXE)
     message(STATUS "VB Audio Path found: ${VB_AUDIO_PATH}")
 else()
     message(FATAL_ERROR "VB Audio Matrix not found. Please install it ")
+endif()
+endif()
+
+# The VST3 hosting module loader is platform specific
+if (WIN32)
+	set(VST3_MODULE_SOURCE "${vst3sdk_SOURCE_DIR}/public.sdk/source/vst/hosting/module_win32.cpp")
+else()
+	set(VST3_MODULE_SOURCE "${vst3sdk_SOURCE_DIR}/public.sdk/source/vst/hosting/module_linux.cpp")
+	find_package(Threads REQUIRED)
 endif()
 
 
@@ -198,7 +271,7 @@ function(nms_add_library name class)
 		${MODULE_HEADER_FILES}
 		${ARGN}
 		${ASIOSDK_SOURCE} 
-		"${vst3sdk_SOURCE_DIR}/public.sdk/source/vst/hosting/module_win32.cpp"
+		${VST3_MODULE_SOURCE}
 	)
 	foreach(kind SHARED STATIC)
 		set(target nms_${name})
@@ -210,12 +283,8 @@ function(nms_add_library name class)
 			PUBLIC  
 			${CMAKE_CURRENT_SOURCE_DIR}/src/${name}/public
 			${CMAKE_CURRENT_SOURCE_DIR}/src
-			"${WWISE_SDK_PATH}/include" 
-			"${WWISE_SDK_PATH}/samples" 
 			"${CMAKE_CURRENT_SOURCE_DIR}/src"
-			"${asio_SOURCE_DIR}/common"
-			"${asio_SOURCE_DIR}/host"
-			"${asio_SOURCE_DIR}/host/pc"
+			${ASIOSDK_INCLUDE_DIRS}
 			"${rtmidi_SOURCE_DIR}"
 			"${simpleini_SOURCE_DIR}"
 			"${vst3sdk_SOURCE_DIR}"
@@ -232,6 +301,9 @@ function(nms_add_library name class)
 		pluginterfaces
 		sdk_common
 		)
+		if (UNIX)
+			target_link_libraries(${target} PRIVATE ${CMAKE_DL_LIBS} Threads::Threads)
+		endif()
 		target_compile_features(${target} PUBLIC cxx_std_20)
 		target_compile_definitions(${target} PRIVATE NEXUS_SCRIPT_MODULE_ID=nms_${name})
 		target_compile_definitions(${target} PUBLIC "SCRIPT_OUTPUT_DIRECTORY=R\"(${SCRIPT_DIRECTORY})\"")
@@ -256,13 +328,21 @@ nms_add_library(controlsurface NexusControlSurface)
 nms_add_library(network NexusNetwork)
 nms_add_library(common NexusCommon )
 
+target_include_directories(nms_soundengine PUBLIC "${WWISE_INCLUDE_PATH}" "${WWISE_SAMPLE_PATH}" "${WWISE_SAMPLE_PATH}/SoundEngine/Common")
+target_include_directories(nms_soundengine_static PUBLIC "${WWISE_INCLUDE_PATH}" "${WWISE_SAMPLE_PATH}" "${WWISE_SAMPLE_PATH}/SoundEngine/Common")
+target_sources(nms_soundengine PUBLIC ${WWISE_INTEGRATION_SOURCES} ${WWISE_PLATFORM_SOURCES})
+target_sources(nms_soundengine_static PUBLIC ${WWISE_INTEGRATION_SOURCES} ${WWISE_PLATFORM_SOURCES})
 target_link_libraries(nms_soundengine_static PRIVATE nms_common_static)
+
+
 
 # C# WPF APPLICATION
 # The WPF project is scaffolded once (when src/app has no App.xaml); the csproj is
 # rewritten from the template below on EVERY configure, so edit the csproj here.
 find_program(DOTNET_EXECUTABLE dotnet)
-if (DOTNET_EXECUTABLE)
+if (NOT WIN32)
+	message(STATUS "Skipping the WPF application (Windows only)")
+elseif (DOTNET_EXECUTABLE)
 	set(NMS_APP_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/app")
 	file(MAKE_DIRECTORY "${NMS_APP_DIR}")
 	if (NOT EXISTS "${NMS_APP_DIR}/App.xaml")
@@ -337,7 +417,11 @@ else()
 	message(WARNING "dotnet SDK not found; cannot generate src/app WPF project")
 endif()
 
-add_executable(NexusMixingCLI WIN32 "src/command-line-interface/NexusCLI.cpp" "src/resources/nexus-mixing-desk.rc")
+if (WIN32)
+	add_executable(NexusMixingCLI WIN32 "src/command-line-interface/NexusCLI.cpp" "src/resources/nexus-mixing-desk.rc")
+else()
+	add_executable(NexusMixingCLI "src/command-line-interface/NexusCLI.cpp")
+endif()
 target_include_directories(NexusMixingCLI PUBLIC
  "${CMAKE_CURRENT_SOURCE_DIR}/src"
 )
@@ -365,9 +449,11 @@ add_custom_command(TARGET NexusMixingCLI PRE_BUILD
 	COMMAND "${CMAKE_COMMAND}" -E true
 )
 
-if(CMAKE_SIZEOF_VOID_P EQUAL 8) 
+if(NOT WIN32)
+	# Wwise libs / winsock are Windows only
+elseif(CMAKE_SIZEOF_VOID_P EQUAL 8) 
 	if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-		file(GLOB WWISE_LIBS "${WWISE_SDK_PATH}/x64_vc170/Debug/lib/*.lib")
+		file(GLOB WWISE_LIBS "${WWISE_LIB_PATH_WIN}/Debug/lib/*.lib")
 		foreach (libfile IN LISTS WWISE_LIBS)
 			message(STATUS "Linking Debug Wwise libs to Debug configuration: ${libfile}")
 		endforeach()
@@ -375,7 +461,7 @@ if(CMAKE_SIZEOF_VOID_P EQUAL 8)
 		target_link_libraries(nms_soundengine PRIVATE ${WWISE_LIBS} ws2_32)
 	# Use Profile configuration because we need to be able to communicate with the Sound Engine
 	elseif(CMAKE_BUILD_TYPE STREQUAL "Release")	
-		file(GLOB WWISE_LIBS "${WWISE_SDK_PATH}/x64_vc170/Profile/lib/*.lib")
+		file(GLOB WWISE_LIBS "${WWISE_LIB_PATH_WIN}/Profile/lib/*.lib")
 		target_link_libraries(nms_soundengine_static PRIVATE ${WWISE_LIBS} ws2_32)
 		target_link_libraries(nms_soundengine PRIVATE ${WWISE_LIBS} ws2_32)
 	else()
@@ -385,22 +471,43 @@ else()
 	message(FATAL_ERROR "Unsupported architecture. Chaotic pointer size")
 endif()
 
-if(CMAKE_SIZEOF_VOID_P EQUAL 8) 
-	if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-		file(GLOB WWISE_LIBS "${WWISE_SDK_PATH}/x64_vc170/Debug/lib/*.lib")
-		foreach (libfile IN LISTS WWISE_LIBS)
-			message(STATUS "Linking Debug Wwise libs to Debug configuration: ${libfile}")
-		endforeach()
-		target_link_libraries(NexusMixingCLI PRIVATE ${WWISE_LIBS} ws2_32)
-	# Use Profile configuration because we need to be able to communicate with the Sound Engine
-	elseif(CMAKE_BUILD_TYPE STREQUAL "Release")	
-		file(GLOB WWISE_LIBS "${WWISE_SDK_PATH}/x64_vc170/Profile/lib/*.lib")
-		target_link_libraries(NexusMixingCLI PRIVATE ${WWISE_LIBS} ws2_32)
-	else()
-		message(FATAL_ERROR "Unsupported build configuration. Use Debug or Release")
-	endif()
-else()
-	message(FATAL_ERROR "Unsupported architecture. Chaotic pointer size")
-endif()
 target_compile_definitions(NexusMixingCLI PRIVATE IEEE754_64FLOAT=1)
+# The VST3 SDK headers require DEVELOPMENT or RELEASE when neither _DEBUG nor NDEBUG is defined (non-MSVC)
+if (NOT WIN32)
+	target_compile_definitions(NexusMixingCLI PRIVATE $<IF:$<CONFIG:Debug>,DEVELOPMENT=1,RELEASE=1>)
+endif()
 
+if (WIN32)
+	target_include_directories(nms_soundengine_static PRIVATE "${WWISE_SAMPLE_PATH}/SoundEngine/Win32")
+	target_include_directories(nms_soundengine PRIVATE "${WWISE_SAMPLE_PATH}/SoundEngine/Win32")
+	target_include_directories(NexusMixingCLI PRIVATE "${WWISE_SAMPLE_PATH}/SoundEngine/Win32")
+elseif(UNIX)
+	target_include_directories(nms_soundengine_static PRIVATE "${WWISE_SAMPLE_PATH}/SoundEngine/POSIX")
+	target_include_directories(nms_soundengine PRIVATE "${WWISE_SAMPLE_PATH}/SoundEngine/POSIX")
+	target_include_directories(NexusMixingCLI PRIVATE "${WWISE_SAMPLE_PATH}/SoundEngine/POSIX")	
+endif()
+
+
+# Linux: provision the default user script the CLI loads when no script path is given
+if (UNIX)
+	set(NMS_DEFAULT_SCRIPT_DEST "${SCRIPT_DIRECTORY}${SCRIPT_DEFAULT_NAME}${SCRIPT_FILE_EXTENSION}")
+	if (NOT EXISTS "${NMS_DEFAULT_SCRIPT_DEST}")
+		file(MAKE_DIRECTORY "${SCRIPT_DIRECTORY}")
+		file(COPY_FILE "${CMAKE_CURRENT_SOURCE_DIR}/src/default_nms_script.py" "${NMS_DEFAULT_SCRIPT_DEST}")
+	endif()
+	if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+		file(GLOB WWISE_LIBS "${WWISE_LIB_PATH_LNX}/Debug/lib/*.lib")
+		foreach (libfile IN LISTS WWISE_LIBS)
+			message(STATUS "Linking Debug Wwise libs to Debug configuration: ${libfile}")
+		endforeach()
+		target_link_libraries(nms_soundengine_static PRIVATE ${WWISE_LIBS} ws2_32)
+		target_link_libraries(nms_soundengine PRIVATE ${WWISE_LIBS} ws2_32)
+	# Use Profile configuration because we need to be able to communicate with the Sound Engine
+	elseif(CMAKE_BUILD_TYPE STREQUAL "Release")	
+		file(GLOB WWISE_LIBS "${WWISE_LIB_PATH_LNX}/Profile/lib/*.lib")
+		target_link_libraries(nms_soundengine_static PRIVATE ${WWISE_LIBS} ws2_32)
+		target_link_libraries(nms_soundengine PRIVATE ${WWISE_LIBS} ws2_32)
+	else()
+		message(FATAL_ERROR "Unsupported build configuration. Use Debug or Release")
+	endif()
+endif()
